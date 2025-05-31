@@ -1,10 +1,6 @@
 import { useRef, useState, useEffect, PointerEvent as PE, ChangeEvent } from 'react';
 import { buildSentenceSegments } from './halpers';
-import { VideoMeta } from '../../pages/PlayerPage';
-
-export type Word = { word: string; start: number; end: number };
-export type Segment = { id: number; text: string; words: Word[]; textTranslated?: string };
-export type SubtitleData = { segments: Segment[]; translation?: string };
+import { Segment, SubtitleData, Word } from '../../types';
 
 export type VideoDoc = {
   src: string; // URL или blob-URL
@@ -113,10 +109,8 @@ export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
   let words: Word[] = [];
   if (currentSeg) {
     words = currentSeg.words;
-    translatedSentence = currentSeg?.textTranslated ?? '';
+    translatedSentence = currentSeg?.translations?.en ?? '';
   }
-
-  console.log('currentSeg', currentSeg);
 
   /* ――― 1. ФУНКЦИЯ-ПОМОЩНИК ――― */
   const jumpToSegment = (dir: 'prev' | 'next') => {

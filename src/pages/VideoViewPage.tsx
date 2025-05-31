@@ -3,7 +3,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer/VideoPlayer';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { SubtitleData } from '../components/VideoPlayer/VideoPlayer';
+import type { SubtitleData } from '../types';
 
 type Loc = { videoUrl?: string };
 

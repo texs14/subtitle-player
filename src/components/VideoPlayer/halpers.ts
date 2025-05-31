@@ -1,59 +1,65 @@
-import { Segment, SubtitleData, Word } from './VideoPlayer';
+// src/helpers/buildSentenceSegments.ts
+import { Segment, SubtitleData, Word } from '../../types';
 
 const sentenceEnd = /[.!?…]+$/;
+const thaiChar = /[\u0E00-\u0E7F]/;
 
 /**
- * Разбивает массив слов на сегменты‑предложения и
- * прикрепляет перевод (если он есть) к соответствующему сегменту.
+ * Разбивает поток слов на предложения и прикрепляет переводы из исходных сегментов.
+ * Для тайского языка дополнительно разбивает по пробелам между тайскими символами.
+ * Переводы сохраняются в ключах { en, th }.
  */
 export function buildSentenceSegments(src: SubtitleData): SubtitleData {
-  // 1) Поток всех слов (в оригинальном порядке)
-  const wordsStream = src.segments.flatMap(s => s.words);
+  // 1) Поток всех слов
+  const wordsStream: Word[] = src.segments.flatMap(s => s.words);
 
-  // 2) Подготовка массива предложений перевода
-  const rawSentences = (src.translation || '')
-    .split(/([.!?…]+)/) // отделяем знаки препинания, сохраняя их
-    .reduce<string[]>((acc, str, i, arr) => {
-      if (!str.trim()) return acc;
+  // 2) Соединяем переводы всех исходных сегментов в единые тексты
+  const fullEn = src.segments.map(s => s.translations.en).join(' ');
+  const fullTh = src.segments.map(s => s.translations.th).join(' ');
 
-      // Если текущий токен — знак препинания, а далее есть текст,
-      // приклеиваем знак к ПРЕДЫДУЩЕМУ предложению, а не к следующему
-      if (sentenceEnd.test(str) && acc.length) {
-        acc[acc.length - 1] += str; // добавить знак к предыдущему
-      } else {
-        acc.push(str);
-      }
+  // 3) Разбиение английского текста на предложения по знакам
+  const enSentences = fullEn
+    .split(/([.!?…]+)/)
+    .reduce<string[]>((acc, tok) => {
+      if (!tok.trim()) return acc;
+      if (sentenceEnd.test(tok) && acc.length) acc[acc.length - 1] += tok;
+      else acc.push(tok);
       return acc;
-    }, []);
+    }, [])
+    .map(s => s.replace(/^\s*[.!?…]+\s*/, '').trim());
 
-  // 3) Чистим ведущие знаки (на случай, если split/reduce оставили их спереди)
-  const ruSentences = rawSentences.map(s => s.replace(/^\s*[.!?…]+\s*/, '').trim());
+  // 4) Разбиение тайского текста на предложения по пробелам между тайскими символами
+  const thSentences = thaiChar.test(fullTh)
+    ? fullTh.split(/(?<=[\u0E00-\u0E7F])\s+(?=[\u0E00-\u0E7F])/).map(s => s.trim())
+    : [];
 
-  // 4) Формируем сегменты оригинала, одновремённо связывая перевод
+  // 5) Формируем новые сегменты-предложения по оригинальным словам и таймингам
   const sentenceSegs: Segment[] = [];
   let buff: Word[] = [];
 
   wordsStream.forEach((w, i) => {
     buff.push(w);
-    const isSentenceEnd = sentenceEnd.test(w.word) || i === wordsStream.length - 1;
-    if (isSentenceEnd) {
+    const isEnd = sentenceEnd.test(w.word) || i === wordsStream.length - 1;
+    if (isEnd) {
+      const start = buff[0].start;
+      const end = buff[buff.length - 1].end;
       sentenceSegs.push({
         id: sentenceSegs.length,
+        start,
+        end,
         text: buff
           .map(x => x.word)
           .join(' ')
           .trim(),
         words: [...buff],
+        translations: {
+          en: enSentences[sentenceSegs.length] || '',
+          th: thSentences[sentenceSegs.length] || '',
+        },
       });
       buff = [];
     }
   });
 
-  // 5) Возвращаем сегменты с прикреплённым переводом (по индексу)
-  return {
-    segments: sentenceSegs.map((s, i) => ({
-      ...s,
-      textTranslated: ruSentences[i] ?? '',
-    })),
-  };
+  return { segments: sentenceSegs };
 }

@@ -1,72 +1,65 @@
+// src/components/UploadTranscriber.tsx
 import { useState, useRef } from 'react';
-import type { SubtitleData } from '../components/VideoPlayer/VideoPlayer';
-
-import { db } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { v4 as uuid } from 'uuid';
+import type { SubtitleData } from '../types';
 
 interface Props {
+  originalLang: string;
+  targetLangs: string[];
+  difficulty: string;
+  tags: string[];
   onComplete: (videoUrl: string, subtitle: SubtitleData) => void;
 }
 
-export default function UploadTranscriber({ onComplete }: Props) {
+export default function UploadTranscriber({
+  originalLang,
+  targetLangs,
+  difficulty,
+  tags,
+  onComplete,
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const busy = useRef(false);
 
-  const push = (m: string) => setLog(p => [...p, `[${new Date().toLocaleTimeString()}] ${m}`]);
+  const push = (msg: string) =>
+    setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
   const start = async () => {
     if (!file || busy.current) return;
     busy.current = true;
 
     try {
-      /* ---------- 1. ➜ /api/upload → Cloud Storage ---------- */
-      push(`🚀 Uploading “${file.name}”…`);
+      // 1. Upload video to backend -> Cloud Storage
+      push(`🚀 Uploading “${file.name}” to server…`);
       const upFD = new FormData();
       upFD.append('video', file);
-
       const upRes = await fetch('http://localhost:4000/api/upload', {
         method: 'POST',
         body: upFD,
       });
       if (!upRes.ok) throw new Error(await upRes.text());
+      const { videoUrl } = await upRes.json();
+      push('✔ Uploaded to Cloud Storage');
 
-      const { videoId, videoUrl } = await upRes.json(); // сервер вернёт { videoId, videoUrl }
-      push('✔ Stored in Cloud Storage');
-
-      /* ---------- 2. ➜ /api/transcribe ---------- */
+      // 2. Transcribe via backend
       push('🎙 Transcribing…');
       const trFD = new FormData();
-      trFD.append('video', file);
-
+      trFD.append('videoUrl', videoUrl);
+      trFD.append('originalLang', originalLang);
+      trFD.append('targetLangs', JSON.stringify(targetLangs));
+      trFD.append('difficulty', difficulty);
+      trFD.append('tags', JSON.stringify(tags));
       const trRes = await fetch('http://localhost:4000/api/transcribe', {
         method: 'POST',
         body: trFD,
       });
       if (!trRes.ok) throw new Error(await trRes.text());
-
       const subtitle: SubtitleData = await trRes.json();
-      push('✔ Transcript received');
+      console.log('subtitle', subtitle);
+      push('✔ Transcription received');
 
-      /* ---------- 3. Firestore ---------- */
-      push('💾 Saving to Firestore…');
-      const docData = {
-        /** VideoDoc */
-        src: videoUrl,
-        subtitle,
-        previewSrc: `${videoUrl}#t=0.1`,
-        /** meta */
-        name: file.name,
-        size: file.size,
-        updated: serverTimestamp(),
-      };
-      await setDoc(doc(db, 'videos', videoId), docData);
-
-      /* кеш офлайн */
-      localStorage.setItem(`videoDoc_${videoId}`, JSON.stringify(docData));
-      push('✔ Firestore + localStorage OK');
-
-      /* ---------- 4. сообщаем родителю ---------- */
+      // 3. Notify parent; Save to Firestore will be manual
       onComplete(videoUrl, subtitle);
     } catch (e: any) {
       console.error(e);
@@ -77,13 +70,12 @@ export default function UploadTranscriber({ onComplete }: Props) {
     }
   };
 
-  /* ---------- UI ---------- */
   return (
     <section className="w-full max-w-md space-y-4">
       <input
         type="file"
+        placeholder="Upload video"
         accept="video/*"
-        placeholder="Выберите видео"
         onChange={e => setFile(e.target.files?.[0] || null)}
         className="w-full file-input file-input-bordered file-input-sm"
       />
