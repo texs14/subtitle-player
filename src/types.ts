@@ -20,7 +20,7 @@ export type SubtitleData = {
 export type VideoDoc = {
   src: string;
   previewSrc: string;
-  originalLang: string;
+  originalLang: Language;
   targetLangs: Language[];
   difficulty: string;
   tags: string[];

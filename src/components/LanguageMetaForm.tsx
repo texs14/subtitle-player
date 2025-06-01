@@ -30,7 +30,6 @@ export function LanguageMetaForm({ originalLang, targetLangs, difficulty, tags, 
         <select
           value={originalLang}
           title="Язык оригинала"
-          defaultValue={originalLang}
           onChange={e => onChange({ originalLang: e.target.value })}
           className="block w-full mt-1 border-gray-300 rounded"
         >
@@ -71,7 +70,6 @@ export function LanguageMetaForm({ originalLang, targetLangs, difficulty, tags, 
         <select
           value={difficulty}
           title="Уровень сложности"
-          defaultValue={difficulty}
           onChange={e => onChange({ difficulty: e.target.value })}
           className="block w-full mt-1 border-gray-300 rounded"
         >
