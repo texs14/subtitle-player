@@ -1,6 +1,7 @@
+// src/components/VideoPlayer/VideoPlayer.tsx
 import { useRef, useState, useEffect, PointerEvent as PE, ChangeEvent } from 'react';
-import { buildSentenceSegments } from './halpers';
-import { Segment, SubtitleData, Word } from '../../types';
+import type { Segment, SubtitleData, Word } from '../../types';
+import type { Language } from '../LanguageMetaForm';
 
 export type VideoDoc = {
   src: string; // URL или blob-URL
@@ -17,21 +18,22 @@ const toTime = (s: number) =>
       )}`;
 
 interface VideoPlayerProps {
-  subtitles: SubtitleData;
+  subtitles: SubtitleData; // готовые сегменты
   src: string;
 }
 
 export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null); // видимый контейнер
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
 
-  const [sentenceSubs] = useState<SubtitleData>(() => buildSentenceSegments(subtitles));
+  // Используем готовые сегменты напрямую
+  const sentenceSubs = subtitles;
 
   /* -------- sync time -------- */
   useEffect(() => {
@@ -41,7 +43,6 @@ export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
     const onMeta = () => setDuration(v.duration);
     v.addEventListener('timeupdate', onTime);
     v.addEventListener('loadedmetadata', onMeta);
-
     return () => {
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('loadedmetadata', onMeta);
@@ -96,72 +97,64 @@ export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
   const segs = sentenceSubs.segments;
   let currentSeg: Segment | null = null;
   for (let i = 0; i < segs.length; i++) {
-    const start = segs[i].words[0].start;
-    const nextStart = segs[i + 1]?.words[0]?.start ?? Infinity;
+    const start = segs[i].start;
+    const nextStart = segs[i + 1]?.start ?? Infinity;
     if (currentTime >= start && currentTime < nextStart) {
       currentSeg = segs[i];
       break;
     }
   }
 
-  let translatedSentence = '';
-
+  // Слова текущего сегмента (простая рендер-логика без подсветки)
   let words: Word[] = [];
+  let translations: Record<Language, string> = {
+    en: '',
+    th: '',
+    ru: '',
+  };
   if (currentSeg) {
     words = currentSeg.words;
-    translatedSentence = currentSeg?.translations?.en ?? '';
+    translations = { ...currentSeg.translations } as Record<Language, string>;
   }
 
-  /* ――― 1. ФУНКЦИЯ-ПОМОЩНИК ――― */
   const jumpToSegment = (dir: 'prev' | 'next') => {
-    const segs = sentenceSubs.segments;
-    if (!segs.length) return;
-
-    // какой сегмент звучит сейчас?
-    let idx = segs.findIndex((s, i) => {
-      const start = s.words[0].start;
-      const next = segs[i + 1]?.words[0]?.start ?? Infinity;
+    const segsArr = sentenceSubs.segments;
+    if (!segsArr.length) return;
+    let idx = segsArr.findIndex((s, i) => {
+      const start = s.start;
+      const next = segsArr[i + 1]?.start ?? Infinity;
       return currentTime >= start && currentTime < next;
     });
-    if (idx === -1) idx = dir === 'next' ? 0 : segs.length - 1;
-
-    idx = dir === 'next' ? Math.min(idx + 1, segs.length - 1) : Math.max(idx - 1, 0);
-
-    const t = segs[idx].words[0].start + 0.001; // маленький сдвиг внутрь сегмента
+    if (idx === -1) idx = dir === 'next' ? 0 : segsArr.length - 1;
+    idx = dir === 'next' ? Math.min(idx + 1, segsArr.length - 1) : Math.max(idx - 1, 0);
+    const t = segsArr[idx].start + 0.001;
     if (videoRef.current) videoRef.current.currentTime = t;
     setCurrentTime(t);
   };
 
   const SubtitleOverlay = () => {
-    if (!words.length) return null;
+    if (!currentSeg) return null;
     return (
       <div className="bg-[rgba(0,0,0,0.9)] flex flex-col justify-center p-[15px] w-full">
-        <p className="text-white  text-[26px] font-bold leading-snug w-full flex justify-center flex-wrap  gap-[5px]">
-          {words.map((w, i) => {
-            const past = currentTime >= w.end;
-            const active = currentTime >= w.start && currentTime < w.end;
-            const cls = past
-              ? 'text-blue-400'
-              : active
-                ? 'underline decoration-blue-300'
-                : 'opacity-60';
-            return (
-              <span key={i} className={cls + ' mr-1'}>
-                {w.word}
-              </span>
-            );
-          })}
+        <p className="text-white text-[26px] font-bold leading-snug w-full flex justify-center flex-wrap gap-[5px]">
+          {words.map((w, i) => (
+            <span key={i} className="mr-1 text-white">
+              {w.word}
+            </span>
+          ))}
         </p>
-        {translatedSentence && (
-          <p className="mt-2 text-xl font-medium text-center text-white opacity-90">
-            {translatedSentence}
-          </p>
-        )}
+        {Object.entries(translations).map(([lang, text]) => {
+          if (!text) return null;
+          return (
+            <p key={lang} className="mt-2 text-xl font-medium text-center text-white opacity-90">
+              {text}
+            </p>
+          );
+        })}
       </div>
     );
   };
 
-  /* -------- render -------- */
   return (
     <div className="relative w-full text-gray-800 select-none">
       <video
@@ -172,10 +165,10 @@ export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
         preload="metadata"
       />
 
-      {/* subtitle container (100 px height, padding 15) */}
+      {/* subtitle container */}
       <div
         ref={overlayRef}
-        className="absolute bottom-24 left-0 w-full h-[120px] px-[15px] flex justify-center pointer-events-auto  z-10"
+        className="absolute bottom-24 left-0 w-full h-[120px] px-[15px] flex justify-center pointer-events-auto z-10"
       >
         <button
           onClick={() => jumpToSegment('prev')}
@@ -222,8 +215,8 @@ export default function VideoPlayer({ subtitles, src }: VideoPlayerProps) {
           min={0}
           max={1}
           step={0.05}
-          placeholder="Volume"
           value={volume}
+          placeholder="Volume"
           onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(parseFloat(e.target.value))}
           className="w-24 cursor-pointer"
         />

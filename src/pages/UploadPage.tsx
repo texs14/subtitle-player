@@ -4,7 +4,7 @@ import { Language, LanguageMetaForm } from '../components/LanguageMetaForm';
 import UploadTranscriber from '../components/UploadTranscriber';
 import { SegmentEditor } from '../components/SegmentEditor';
 import VideoPlayer from '../components/VideoPlayer/VideoPlayer';
-import type { SubtitleData, VideoDoc } from '../types';
+import type { Segment, SubtitleData, VideoDoc } from '../types';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { buildSentenceSegments } from '../components/VideoPlayer/halpers';
@@ -65,9 +65,9 @@ export default function UploadPage() {
       const { segments: trSegments } = await res.json();
       console.log('trSegments', trSegments);
       // merge translations
-      await setEditedSubs(prev => {
+      await setEditedSubs((prev: any) => {
         if (!prev) return prev;
-        const merged = prev.segments.map(s => {
+        const merged = prev.segments.map((s: Segment) => {
           const tr = trSegments.find((t: any) => t.id === s.id);
           return tr ? { ...s, translations: tr.translations } : s;
         });
@@ -132,8 +132,11 @@ export default function UploadPage() {
 
           <SegmentEditor
             segments={editedSubs.segments}
+            originalLang={videoDoc.originalLang}
             targetLangs={videoDoc.targetLangs}
-            onChange={segs => setEditedSubs({ segments: segs })}
+            onChange={newSegments =>
+              setEditedSubs(prev => (prev ? { ...prev, segments: newSegments } : null))
+            }
           />
 
           <button onClick={handleSave} className="px-6 py-2 mt-6 text-white bg-green-600 rounded">
