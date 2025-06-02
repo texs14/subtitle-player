@@ -1,0 +1,73 @@
+{
+  "hash": "7cfc3411",
+  "configHash": "3fcdc616",
+  "lockfileHash": "b85f6d65",
+  "browserHash": "74df915b",
+  "optimized": {
+    "@tensorflow/tfjs-backend-webgl": {
+      "src": "../../node_modules/@tensorflow/tfjs-backend-webgl/dist/index.js",
+      "file": "@tensorflow_tfjs-backend-webgl.js",
+      "fileHash": "44791953",
+      "needsInterop": false
+    },
+    "@tensorflow/tfjs-core": {
+      "src": "../../node_modules/@tensorflow/tfjs-core/dist/index.js",
+      "file": "@tensorflow_tfjs-core.js",
+      "fileHash": "269959a3",
+      "needsInterop": false
+    },
+    "firebase/app": {
+      "src": "../../node_modules/firebase/app/dist/esm/index.esm.js",
+      "file": "firebase_app.js",
+      "fileHash": "ce081629",
+      "needsInterop": false
+    },
+    "firebase/firestore": {
+      "src": "../../node_modules/firebase/firestore/dist/esm/index.esm.js",
+      "file": "firebase_firestore.js",
+      "fileHash": "d6384798",
+      "needsInterop": false
+    },
+    "firebase/storage": {
+      "src": "../../node_modules/firebase/storage/dist/esm/index.esm.js",
+      "file": "firebase_storage.js",
+      "fileHash": "6144b4dd",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "f4b6c7f9",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "c42ce8ef",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "89e565bb",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-JZ45J3JB": {
+      "file": "chunk-JZ45J3JB.js"
+    },
+    "chunk-N5NH6ZJN": {
+      "file": "chunk-N5NH6ZJN.js"
+    },
+    "chunk-5HNGYYSW": {
+      "file": "chunk-5HNGYYSW.js"
+    },
+    "chunk-TVFQMRVC": {
+      "file": "chunk-TVFQMRVC.js"
+    },
+    "chunk-G3PMV62Z": {
+      "file": "chunk-G3PMV62Z.js"
+    }
+  }
+}

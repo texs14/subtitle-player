@@ -101,8 +101,13 @@ export default function UploadPage() {
       updated: null,
     };
     setVideoDoc(docData);
-    // Для нового видео делаем разбиение на предложения
-    setEditedSubs(buildSentenceSegments(subtitle));
+
+    if (meta.originalLang !== 'th') {
+      // Для нового видео делаем разбиение на предложения
+      setEditedSubs(buildSentenceSegments(subtitle));
+    } else {
+      setEditedSubs(subtitle);
+    }
   };
 
   /** Batch-перевод всех сегментов */
