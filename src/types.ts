@@ -1,3 +1,5 @@
+import { Language } from './components/LanguageMetaForm';
+
 export type Word = { word: string; start: number; end: number };
 export type Segment = {
   id: number;
@@ -11,12 +13,15 @@ export type Segment = {
     ru: string;
   };
 };
-export type SubtitleData = { segments: Segment[] };
+export type SubtitleData = {
+  translation: any;
+  segments: Segment[];
+};
 export type VideoDoc = {
   src: string;
   previewSrc: string;
-  originalLang: string;
-  targetLangs: string[];
+  originalLang: Language;
+  targetLangs: Language[];
   difficulty: string;
   tags: string[];
   subtitle: SubtitleData;

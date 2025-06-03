@@ -3,20 +3,26 @@ import HomeLayout from './layouts/HomeLayout';
 import UploadPage from './pages/UploadPage';
 import PlayerPage from './pages/PlayerPage';
 import VideoViewPage from './pages/VideoViewPage';
+import { TooltipProvider } from './contexts/TooltipContext';
+import { WordTooltip } from './components/WordTooltip';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomeLayout />}>
-          <Route index element={<Navigate to="upload" replace />} />
-          <Route path="upload" element={<UploadPage />} />
-          <Route path="video" element={<PlayerPage />} />
-          {/* динамический просмотр одного ролика */}
-          <Route path="video/:id" element={<VideoViewPage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomeLayout />}>
+            <Route index element={<Navigate to="upload" replace />} />
+            <Route path="video" element={<PlayerPage />} />
+            <Route path="/video/:videoId" element={<VideoViewPage />} />
+            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/upload/:videoId" element={<UploadPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+
+      <WordTooltip />
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,4 @@
-// src/components/UploadTranscriber.tsx
 import { useState, useRef } from 'react';
-import { v4 as uuid } from 'uuid';
 import type { SubtitleData } from '../types';
 
 interface Props {
@@ -9,6 +7,7 @@ interface Props {
   difficulty: string;
   tags: string[];
   onComplete: (videoUrl: string, subtitle: SubtitleData) => void;
+  disabled?: boolean;
 }
 
 export default function UploadTranscriber({
@@ -17,6 +16,7 @@ export default function UploadTranscriber({
   difficulty,
   tags,
   onComplete,
+  disabled = false,
 }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [log, setLog] = useState<string[]>([]);
@@ -26,11 +26,11 @@ export default function UploadTranscriber({
     setLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
   const start = async () => {
-    if (!file || busy.current) return;
+    if (!file || busy.current || disabled) return;
     busy.current = true;
 
     try {
-      // 1. Upload video to backend -> Cloud Storage
+      // 1. Загрузка видео на backend → Cloud Storage
       push(`🚀 Uploading “${file.name}” to server…`);
       const upFD = new FormData();
       upFD.append('video', file);
@@ -42,7 +42,7 @@ export default function UploadTranscriber({
       const { videoUrl } = await upRes.json();
       push('✔ Uploaded to Cloud Storage');
 
-      // 2. Transcribe via backend
+      // 2. Транскрибация через backend
       push('🎙 Transcribing…');
       const trFD = new FormData();
       trFD.append('videoUrl', videoUrl);
@@ -59,7 +59,7 @@ export default function UploadTranscriber({
       console.log('subtitle', subtitle);
       push('✔ Transcription received');
 
-      // 3. Notify parent; Save to Firestore will be manual
+      // 3. Сообщаем родителю (сохранение в Firestore выполняется вручную позже)
       onComplete(videoUrl, subtitle);
     } catch (e: any) {
       console.error(e);
@@ -77,12 +77,13 @@ export default function UploadTranscriber({
         placeholder="Upload video"
         accept="video/*"
         onChange={e => setFile(e.target.files?.[0] || null)}
+        disabled={disabled}
         className="w-full file-input file-input-bordered file-input-sm"
       />
 
       <button
         onClick={start}
-        disabled={!file || busy.current}
+        disabled={!file || busy.current || disabled}
         className="w-full px-5 py-2 text-white bg-blue-600 rounded disabled:opacity-50"
       >
         {busy.current ? 'Загрузка…' : 'Старт'}

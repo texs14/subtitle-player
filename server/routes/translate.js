@@ -11,8 +11,10 @@ router.post('/translate', express.json(), async (req, res) => {
       return res.status(400).send('segments and targetLangs required');
     }
 
+    const projectId = process.env.GOOGLE_PROJECT_ID;
+    console.log('translate.js projectId', projectId);
     const texts = segments.map(s => s.text);
-    const parent = `projects/${process.env.GOOGLE_PROJECT_NUMBER}/locations/global`;
+    const parent = `projects/${projectId}/locations/global`;
 
     // Переводим все тексты на каждый язык
     const translationsByLang = {};
