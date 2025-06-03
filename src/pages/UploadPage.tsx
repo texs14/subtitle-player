@@ -1,4 +1,3 @@
-// src/pages/UploadPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Language, LanguageMetaForm } from '../components/LanguageMetaForm';
@@ -32,7 +31,7 @@ export default function UploadPage() {
   const [translating, setTranslating] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(false);
 
-  /** Если есть videoId, тянем из Firestore документ и заполняем state */
+  // 1. Если есть videoId в параметрах, подгружаем документ из Firestore
   useEffect(() => {
     if (!videoId) return;
     setLoadingDoc(true);
@@ -47,7 +46,7 @@ export default function UploadPage() {
         }
         const d = snap.data() as any;
 
-        // Сразу используем сохранённые метаданные
+        // Загрузка метаданных в форму
         const loadedMeta: Meta = {
           originalLang: d.originalLang || 'auto',
           targetLangs: d.targetLangs || [],
@@ -56,6 +55,7 @@ export default function UploadPage() {
         };
         setMeta(loadedMeta);
 
+        // Загрузка самого VideoDoc
         const loadedDoc: VideoDoc = {
           src: d.src as string,
           previewSrc: d.previewSrc as string,
@@ -70,8 +70,7 @@ export default function UploadPage() {
         };
         setVideoDoc(loadedDoc);
 
-        // ВАЖНО: сразу берём subtitle из Firestore целиком,
-        // а не делаем buildSentenceSegments, чтобы увидеть последние правки
+        // При редактировании сразу подставляем сохранённый subtitle
         setEditedSubs(d.subtitle as SubtitleData);
       } catch (e: any) {
         console.error(e);
@@ -83,7 +82,7 @@ export default function UploadPage() {
     })();
   }, [videoId]);
 
-  /** При успешной загрузке нового файла через UploadTranscriber */
+  // 2. Обработчик успешной загрузки нового видео через UploadTranscriber
   const handleUploadComplete = (url: string, subtitle: SubtitleData) => {
     const docData: VideoDoc = {
       src: url,
@@ -105,7 +104,7 @@ export default function UploadPage() {
     setEditedSubs(buildSentenceSegments(subtitle));
   };
 
-  /** Batch-перевод всех сегментов */
+  // 3. Batch-перевод сегментов
   const handleTranslate = async () => {
     if (!editedSubs || !videoDoc) return;
     setTranslating(true);
@@ -120,7 +119,8 @@ export default function UploadPage() {
       });
       if (!res.ok) throw new Error(await res.text());
       const { segments: trSegments } = await res.json();
-      // Сливаем полученные переводы в наши сегменты
+
+      // Слияние полученных переводов в наш editedSubs
       setEditedSubs((prev: any) => {
         if (!prev) return prev;
         const merged = prev.segments.map((s: Segment) => {
@@ -136,9 +136,10 @@ export default function UploadPage() {
     }
   };
 
-  /** Сохранить новое или отредактированное видео в Firestore */
+  // 4. Сохранение нового или отредактированного видео в Firestore
   const handleSave = async () => {
     if (!videoDoc || !editedSubs) return;
+    // Если videoId нет (новое видео), берём его из URL после загрузки
     const idToUse = videoId || new URL(videoDoc.src).pathname.split('/').pop()?.split('.')[0] || '';
     const updatedData: any = {
       src: videoDoc.src,
@@ -150,7 +151,7 @@ export default function UploadPage() {
         .split(',')
         .map(t => t.trim())
         .filter(t => t),
-      subtitle: editedSubs, // уже содержит последние правки
+      subtitle: editedSubs,
       name: videoDoc.name,
       size: videoDoc.size,
       updated: new Date(),
@@ -191,10 +192,10 @@ export default function UploadPage() {
           .map(t => t.trim())
           .filter(t => t)}
         onComplete={handleUploadComplete}
-        disabled={!!videoId} /* если редактируем, загрузка файла запрещена */
+        disabled={!!videoId} /* Если мы редактируем существующее видео — загрузка блокируется */
       />
 
-      {/* Если есть либо только что загруженное видео, либо загружено из Firestore */}
+      {/* Если есть либо новое видео, либо загруженное из Firestore */}
       {videoDoc && editedSubs && !loadingDoc && (
         <>
           <div className="w-full max-w-4xl mx-auto">

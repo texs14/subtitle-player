@@ -1,4 +1,3 @@
-// src/components/UploadTranscriber.tsx
 import { useState, useRef } from 'react';
 import type { SubtitleData } from '../types';
 
@@ -31,7 +30,7 @@ export default function UploadTranscriber({
     busy.current = true;
 
     try {
-      // 1. Загружаем видео на бэкенд → Cloud Storage
+      // 1. Загрузка видео на backend → Cloud Storage
       push(`🚀 Uploading “${file.name}” to server…`);
       const upFD = new FormData();
       upFD.append('video', file);
@@ -43,7 +42,7 @@ export default function UploadTranscriber({
       const { videoUrl } = await upRes.json();
       push('✔ Uploaded to Cloud Storage');
 
-      // 2. Транскрибируем через бэкенд
+      // 2. Транскрибация через backend
       push('🎙 Transcribing…');
       const trFD = new FormData();
       trFD.append('videoUrl', videoUrl);
@@ -57,9 +56,10 @@ export default function UploadTranscriber({
       });
       if (!trRes.ok) throw new Error(await trRes.text());
       const subtitle: SubtitleData = await trRes.json();
+      console.log('subtitle', subtitle);
       push('✔ Transcription received');
 
-      // 3. Уведомляем родителя; сохранение в Firestore будет вручную
+      // 3. Сообщаем родителю (сохранение в Firestore выполняется вручную позже)
       onComplete(videoUrl, subtitle);
     } catch (e: any) {
       console.error(e);

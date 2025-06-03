@@ -1,50 +1,43 @@
-// src/components/VideoCard.tsx
-import React, { MouseEvent } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { VideoMeta } from '../pages/PlayerPage';
+import type { VideoMeta } from '../pages/PlayerPage';
 
-interface VideoCardProps {
+interface Props {
   video: VideoMeta;
 }
 
-/**
- * Карточка-превью для каждого видео:
- * - При клике на всю карточку навигируем на страницу просмотра: /video/:videoId
- * - Кнопка "Редактировать" ведёт на /upload/:videoId
- */
-export function VideoCard({ video }: VideoCardProps) {
+export default function VideoCard({ video }: Props) {
   const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    navigate(`/video/${video.videoId}`);
-  };
-
-  const handleEditClick = (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    navigate(`/upload/${video.videoId}`);
-  };
-
   return (
-    <div className="relative space-y-2 cursor-pointer hover:opacity-90" onClick={handleCardClick}>
-      <video
-        src={video.videoUrl + '#t=0.1'}
-        muted
-        controls={false}
-        className="object-cover w-full rounded shadow aspect-video"
-      />
+    <div className="relative group">
+      {/* Обёртка с кликом по превью */}
+      <div
+        onClick={() => navigate(`/video/${video.videoId}`, { state: { videoUrl: video.videoUrl } })}
+        className="space-y-2 transition cursor-pointer hover:opacity-90"
+      >
+        <video
+          src={video.videoUrl + '#t=0.1'}
+          controls
+          muted
+          className="w-full rounded shadow aspect-video"
+        />
+        <div className="text-sm">
+          <p className="font-medium truncate">{video.name}</p>
+          <p className="text-gray-500">
+            {(video.size / 1024 / 1024).toFixed(1)} MB ·{' '}
+            {video.updated ? new Date(video.updated).toLocaleString() : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Кнопка "Редактировать" */}
       <button
-        onClick={handleEditClick}
-        className="absolute z-10 px-2 py-1 text-xs text-white bg-blue-600 rounded top-2 right-2 hover:bg-blue-700 focus:outline-none"
+        onClick={() => navigate(`/upload/${video.videoId}`)}
+        className="absolute px-2 py-1 text-xs text-white transition bg-blue-600 rounded opacity-0 top-2 right-2 group-hover:opacity-100"
       >
         Редактировать
       </button>
-      <div className="px-1 text-sm">
-        <p className="font-medium truncate">{video.name}</p>
-        <p className="text-gray-500">
-          {(video.size / 1024 / 1024).toFixed(1)} MB ·{' '}
-          {video.updated ? new Date(video.updated).toLocaleString() : '—'}
-        </p>
-      </div>
     </div>
   );
 }

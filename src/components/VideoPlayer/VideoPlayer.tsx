@@ -171,13 +171,15 @@ export default function VideoPlayer({ subtitles, src, originalLang }: VideoPlaye
     if (!currentSeg) return null;
     return (
       <div className="bg-[rgba(0,0,0,0.9)] flex flex-col justify-center p-[15px] w-full">
-        <p className="text-white text-[26px] font-bold leading-snug w-full flex justify-center flex-wrap gap-[5px]">
+        <p
+          className={`text-white text-[26px] font-bold leading-snug w-full flex justify-center flex-wrap ${originalLang === 'th' ? '' : `gap-[5px]`}`}
+        >
           {words.map((w, i) => (
             <span
               data-interactive="true"
               key={i}
               onClick={(e: MouseEvent<HTMLSpanElement>) => showTooltip(w.word, e, originalLang)}
-              className="mr-1 text-white cursor-pointer hover:text-blue-300"
+              className={`text-white cursor-pointer hover:text-blue-300 ${w.word === ' ' ? '' : 'mr-3'}`}
             >
               {w.word}
             </span>
@@ -194,6 +196,8 @@ export default function VideoPlayer({ subtitles, src, originalLang }: VideoPlaye
       </div>
     );
   };
+
+  console.log('src', src);
 
   return (
     <div className="relative w-full text-gray-800 select-none">
