@@ -179,7 +179,7 @@ export default function VideoPlayer({ subtitles, src, originalLang }: VideoPlaye
               data-interactive="true"
               key={i}
               onClick={(e: MouseEvent<HTMLSpanElement>) => showTooltip(w.word, e, originalLang)}
-              className={`text-white cursor-pointer hover:text-blue-300 ${w.word === ' ' ? '' : 'mr-3'}`}
+              className={`text-white cursor-pointer hover:text-blue-300 ${w.word === ' ' ? 'mr-3' : ''}`}
             >
               {w.word}
             </span>
