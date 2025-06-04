@@ -72,12 +72,12 @@ const WordChip: React.FC<WordChipProps> = ({ word, setShuffled, disabled }) => {
   const [, drag, preview] = useDrag(
     () => ({
       type: ITEM_TYPE,
-      item: word,
-      canDrag: !disabled,
-      begin: () => {
+      item: () => {
         // Удаляем слово из списка при начале перетаскивания
         setShuffled(prev => prev.filter(w => w.id !== word.id));
+        return word;
       },
+      canDrag: !disabled,
       end: (item, monitor) => {
         if (!monitor.didDrop()) {
           // Если не был сделан drop, возвращаем слово в список
@@ -95,7 +95,9 @@ const WordChip: React.FC<WordChipProps> = ({ word, setShuffled, disabled }) => {
 
   return (
     <div
-      ref={drag}
+      ref={node => {
+        drag(node);
+      }}
       className="px-3 py-1 bg-gray-200 rounded cursor-move select-none"
       data-interactive="true"
     >
