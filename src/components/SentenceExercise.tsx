@@ -81,6 +81,7 @@ const WordChip: React.FC<WordChipProps> = ({ word, fromList, disabled, colorClas
       canDrag: !disabled,
     }),
     [word, fromList, disabled],
+
   );
 
   // Скрываем стандартный drag preview
