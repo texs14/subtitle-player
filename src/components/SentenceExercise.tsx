@@ -1,5 +1,7 @@
 // src/components/exercises/SentenceExercise.tsx
 import React, { useEffect, useState, useRef } from 'react';
+import { useDrag, useDrop, useDragLayer } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 
 interface Sentence {
   text: string; // Полное предложение на тайском, например: "นี่คือข้อเสนอการทดสอบสำหรับการตรวจสอบ"
@@ -27,6 +29,81 @@ type DraggableWord = {
   correctIndex: number; // Позиция в «правильном ответе»
 };
 
+const ITEM_TYPE = 'WORD';
+
+// Компонент для кастомного слоя перетаскивания
+const DragPreview: React.FC = () => {
+  const { itemType, item, isDragging, currentOffset } = useDragLayer(monitor => ({
+    itemType: monitor.getItemType(),
+    item: monitor.getItem() as DraggableWord | null,
+    isDragging: monitor.isDragging(),
+    currentOffset: monitor.getSourceClientOffset(),
+  }));
+
+  if (!isDragging || itemType !== ITEM_TYPE || !currentOffset || !item) return null;
+
+  const { x, y } = currentOffset;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        pointerEvents: 'none',
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1000,
+      }}
+    >
+      <div className="px-3 py-1 bg-gray-200 rounded shadow">
+        {item.text}
+      </div>
+    </div>
+  );
+};
+
+interface WordChipProps {
+  word: DraggableWord;
+  setShuffled: React.Dispatch<React.SetStateAction<DraggableWord[]>>;
+  disabled: boolean;
+}
+
+const WordChip: React.FC<WordChipProps> = ({ word, setShuffled, disabled }) => {
+  const [, drag, preview] = useDrag(
+    () => ({
+      type: ITEM_TYPE,
+      item: word,
+      canDrag: !disabled,
+      begin: () => {
+        // Удаляем слово из списка при начале перетаскивания
+        setShuffled(prev => prev.filter(w => w.id !== word.id));
+      },
+      end: (item, monitor) => {
+        if (!monitor.didDrop()) {
+          // Если не был сделан drop, возвращаем слово в список
+          setShuffled(prev => [...prev, item]);
+        }
+      },
+    }),
+    [word, disabled],
+  );
+
+  // Скрываем стандартный drag preview
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
+  return (
+    <div
+      ref={drag}
+      className="px-3 py-1 bg-gray-200 rounded cursor-move select-none"
+      data-interactive="true"
+    >
+      {word.text}
+    </div>
+  );
+};
+
 export default function SentenceExercise({ sentence, onComplete, isActive, index }: Props) {
   const [shuffled, setShuffled] = useState<DraggableWord[]>([]);
   const [userOrder, setUserOrder] = useState<DraggableWord[]>([]);
@@ -34,6 +111,18 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
   const [feedback, setFeedback] = useState<boolean[]>([]); // true = правильно, false = неправильно
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  const [, drop] = useDrop(
+    () => ({
+      accept: ITEM_TYPE,
+      drop: (item: DraggableWord) => {
+        if (!userOrder.find(w => w.id === item.id)) {
+          setUserOrder(prev => [...prev, item]);
+        }
+      },
+    }),
+    [userOrder],
+  );
 
   // При инициализации разбиваем текст на тайские «слова» через Intl.Segmenter
   useEffect(() => {
@@ -60,27 +149,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     setFeedback([]);
   }, [sentence.text, isActive, index]);
 
-  // Обработчики Drag&Drop
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, draggedWord: DraggableWord) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(draggedWord));
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData('application/json');
-    if (!data) return;
-    const droppedWord: DraggableWord = JSON.parse(data);
-
-    // Если слово уже добавлено пользователем — не добавляем снова
-    if (userOrder.find(w => w.id === droppedWord.id)) return;
-
-    setUserOrder(prev => [...prev, droppedWord]);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
 
   // Проверка: нажали «Проверить»
   const handleCheck = () => {
@@ -125,22 +193,21 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
           {/* Зона со словарными чипсами (перемешано) */}
           <div className="flex flex-wrap gap-2 mb-4">
             {shuffled.map(wordObj => (
-              <div
+              <WordChip
                 key={wordObj.id}
-                draggable={!isChecked}
-                onDragStart={e => handleDragStart(e, wordObj)}
-                className="px-3 py-1 bg-gray-200 rounded cursor-move select-none"
-              >
-                {wordObj.text}
-              </div>
+                word={wordObj}
+                setShuffled={setShuffled}
+                disabled={isChecked}
+              />
             ))}
           </div>
 
           {/* Поле пользователя (куда перетаскивают слова) */}
           <div
-            ref={dropZoneRef}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
+            ref={node => {
+              drop(node);
+              dropZoneRef.current = node;
+            }}
             className="min-h-[48px] border-2 border-dashed border-gray-300 rounded p-2 mb-4 flex flex-wrap gap-2"
           >
             {userOrder.length === 0 && (
@@ -200,7 +267,8 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
               </p>
             )}
           </div>
-        </>
+        <DragPreview />
+      </>
       )}
     </div>
   );
