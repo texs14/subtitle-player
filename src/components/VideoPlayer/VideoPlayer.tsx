@@ -268,3 +268,32 @@ export default function VideoPlayer({ subtitles, src, originalLang }: VideoPlaye
     </div>
   );
 }
+
+const exercise = {
+  name: 'Базовая граматика',
+  originalLang: 'th',
+  difficulty: 'beginner',
+  tags: ['grammar', 'vocabulary'],
+  sentences: [
+    {
+      text: 'นี่คือข้อเสนอการทดสอบสำหรับการตรวจสอบ',
+      rightAnswers: ['นี่คือข้อเสนอการทดสอบสำหรับการตรวจสอบ'],
+      translations: {
+        ru: 'Это тестовое предложение для проверки',
+        en: 'This is a test offer for verification',
+      },
+      note: {
+        en: 'We check how it will all be displayed and look like',
+        ru: 'Проверяем как это всё будет выводиться и выглядеть',
+      },
+    },
+    {
+      text: 'นี้เป็นคำแนะนำการทดสอบต่อไปที่จะตรวจสอบ',
+      translations: {
+        ru: 'Это следующее тестовое предложение для проверки',
+        en: 'This is the next test suggestion to check.',
+      },
+      note: null,
+    },
+  ],
+};

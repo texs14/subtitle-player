@@ -20,8 +20,9 @@ export default function HomeLayout() {
     <div className="flex flex-col items-center w-full mt-6">
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        <Tab to="upload">Загрузить&nbsp;видео</Tab>
+        <Tab to="upload">Загрузить видео</Tab>
         <Tab to="video">Видео</Tab>
+        <Tab to="exercises">Упражнение</Tab>
       </div>
       {/* Nested pages */}
       <Outlet />
