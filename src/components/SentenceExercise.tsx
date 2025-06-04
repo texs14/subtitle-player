@@ -29,13 +29,16 @@ type DraggableWord = {
   correctIndex: number; // Позиция в «правильном ответе»
 };
 
+// Элемент перетаскивания с указанием его текущего списка
+type DragItem = DraggableWord & { fromList: boolean };
+
 const ITEM_TYPE = 'WORD';
 
 // Компонент для кастомного слоя перетаскивания
 const DragPreview: React.FC = () => {
   const { itemType, item, isDragging, currentOffset } = useDragLayer(monitor => ({
     itemType: monitor.getItemType(),
-    item: monitor.getItem() as DraggableWord | null,
+    item: monitor.getItem() as DragItem | null,
     isDragging: monitor.isDragging(),
     currentOffset: monitor.getSourceClientOffset(),
   }));
@@ -64,28 +67,20 @@ const DragPreview: React.FC = () => {
 
 interface WordChipProps {
   word: DraggableWord;
-  setShuffled: React.Dispatch<React.SetStateAction<DraggableWord[]>>;
+  fromList: boolean; // где находится слово в данный момент
   disabled: boolean;
+  colorClass?: string; // цвет фона
 }
 
-const WordChip: React.FC<WordChipProps> = ({ word, setShuffled, disabled }) => {
-  const [, drag, preview] = useDrag(
+// Универсальный чип, который может перетаскиваться между двумя списками
+const WordChip: React.FC<WordChipProps> = ({ word, fromList, disabled, colorClass }) => {
+  const [{ isDragging }, drag, preview] = useDrag<DragItem, void, { isDragging: boolean }>(
     () => ({
       type: ITEM_TYPE,
-      item: () => {
-        // Удаляем слово из списка при начале перетаскивания
-        setShuffled(prev => prev.filter(w => w.id !== word.id));
-        return word;
-      },
+      item: { ...word, fromList },
       canDrag: !disabled,
-      end: (item, monitor) => {
-        if (!monitor.didDrop()) {
-          // Если не был сделан drop, возвращаем слово в список
-          setShuffled(prev => [...prev, item]);
-        }
-      },
     }),
-    [word, disabled],
+    [word, fromList, disabled],
   );
 
   // Скрываем стандартный drag preview
@@ -96,9 +91,10 @@ const WordChip: React.FC<WordChipProps> = ({ word, setShuffled, disabled }) => {
   return (
     <div
       ref={node => {
-        drag(node);
+        drag(node as HTMLDivElement);
       }}
-      className="px-3 py-1 bg-gray-200 rounded cursor-move select-none"
+      style={{ opacity: isDragging ? 0 : 1 }}
+      className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
       data-interactive="true"
     >
       {word.text}
@@ -114,16 +110,34 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const [, drop] = useDrop(
+  // Зона для составления предложения
+  const [, dropToUser] = useDrop(
     () => ({
       accept: ITEM_TYPE,
-      drop: (item: DraggableWord) => {
-        if (!userOrder.find(w => w.id === item.id)) {
+      drop: (item: DragItem) => {
+        if (item.fromList && !userOrder.find(w => w.id === item.id)) {
+          // перенос из общего списка
+          setShuffled(prev => prev.filter(w => w.id !== item.id));
           setUserOrder(prev => [...prev, item]);
         }
       },
     }),
-    [userOrder],
+    [userOrder, shuffled],
+  );
+
+  // Зона со всеми словами
+  const [, dropToList] = useDrop(
+    () => ({
+      accept: ITEM_TYPE,
+      drop: (item: DragItem) => {
+        if (!item.fromList) {
+          // перенос из пользовательского поля обратно в список
+          setUserOrder(prev => prev.filter(w => w.id !== item.id));
+          setShuffled(prev => [...prev, item]);
+        }
+      },
+    }),
+    [userOrder, shuffled],
   );
 
   // При инициализации разбиваем текст на тайские «слова» через Intl.Segmenter
@@ -193,12 +207,17 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
           <p className="mb-2">Соберите предложение:</p>
 
           {/* Зона со словарными чипсами (перемешано) */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div
+            ref={node => {
+              dropToList(node as HTMLDivElement);
+            }}
+            className="flex flex-wrap gap-2 mb-4"
+          >
             {shuffled.map(wordObj => (
               <WordChip
                 key={wordObj.id}
                 word={wordObj}
-                setShuffled={setShuffled}
+                fromList={true}
                 disabled={isChecked}
               />
             ))}
@@ -207,7 +226,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
           {/* Поле пользователя (куда перетаскивают слова) */}
           <div
             ref={node => {
-              drop(node);
+              dropToUser(node as HTMLDivElement);
               dropZoneRef.current = node;
             }}
             className="min-h-[48px] border-2 border-dashed border-gray-300 rounded p-2 mb-4 flex flex-wrap gap-2"
@@ -215,17 +234,22 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
             {userOrder.length === 0 && (
               <span className="text-gray-400">Перетащите сюда слова...</span>
             )}
-            {userOrder.map((w, idx) => (
-              <span
-                key={w.id}
-                className={`
-                  px-3 py-1 rounded select-none
-                  ${isChecked ? (feedback[idx] ? 'bg-green-300' : 'bg-red-300') : 'bg-yellow-100'}
-                `}
-              >
-                {w.text}
-              </span>
-            ))}
+            {userOrder.map((w, idx) => {
+              const color = isChecked
+                ? feedback[idx]
+                  ? 'bg-green-300'
+                  : 'bg-red-300'
+                : 'bg-yellow-100';
+              return (
+                <WordChip
+                  key={w.id}
+                  word={w}
+                  fromList={false}
+                  disabled={isChecked}
+                  colorClass={color}
+                />
+              );
+            })}
           </div>
 
           {/* Кнопки «Проверить» и «Сброс» */}
