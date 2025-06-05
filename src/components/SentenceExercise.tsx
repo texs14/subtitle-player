@@ -40,7 +40,7 @@ const DragPreview: React.FC = () => {
     itemType: monitor.getItemType(),
     item: monitor.getItem() as DragItem | null,
     isDragging: monitor.isDragging(),
-    currentOffset: monitor.getClientOffset(),
+    currentOffset: monitor.getSourceClientOffset(),
   }));
 
   if (!isDragging || itemType !== ITEM_TYPE || !currentOffset || !item) return null;
@@ -58,7 +58,9 @@ const DragPreview: React.FC = () => {
         zIndex: 1000,
       }}
     >
-      <div className="px-3 py-1 bg-gray-200 rounded shadow">{item.text}</div>
+      <div className="px-3 py-1 bg-gray-200 rounded shadow">
+        {item.text}
+      </div>
     </div>
   );
 };
@@ -91,11 +93,7 @@ const WordChip: React.FC<WordChipProps> = ({
   const [hoverPos, setHoverPos] = useState<'left' | 'right' | null>(null);
   const [dragWidth, setDragWidth] = useState(0);
 
-  const [{ isDragging }, drag, preview] = useDrag<
-    DragItem & { index?: number },
-    void,
-    { isDragging: boolean }
-  >(
+  const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
     () => ({
       type: ITEM_TYPE,
       item: () => {
@@ -179,7 +177,6 @@ const WordChip: React.FC<WordChipProps> = ({
       style={{
         opacity: isDragging ? 0 : 1,
         display: isDragging ? 'none' : undefined,
-
         pointerEvents: isDragging ? 'none' : 'auto',
         transform:
           hoverPos === 'left'
@@ -205,31 +202,26 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const handleChipDragStart = useCallback((item: DragItem) => {
-    if (item.fromList) {
-      setShuffled(prev => prev.filter(w => w.id !== item.id));
-    } else {
-      setUserOrder(prev => prev.filter(w => w.id !== item.id));
-    }
+  const handleChipDragStart = useCallback((_item: DragItem) => {
+    /* no-op */
   }, []);
 
-  const handleChipDragEnd = useCallback((item: DragItem, didDrop: boolean) => {
-    if (didDrop) return;
-    if (item.fromList) {
-      setShuffled(prev => [...prev, item]);
-    } else {
-      setUserOrder(prev => [...prev, item]);
-    }
+  const handleChipDragEnd = useCallback(() => {
+    /* no-op */
   }, []);
 
-  const moveWord = useCallback((from: number, to: number) => {
-    setUserOrder(prev => {
-      const updated = [...prev];
-      const [moved] = updated.splice(from, 1);
-      updated.splice(to, 0, moved);
-      return updated;
-    });
-  }, []);
+  const moveWord = useCallback(
+    (from: number, to: number) => {
+      setUserOrder(prev => {
+        const updated = [...prev];
+        const [moved] = updated.splice(from, 1);
+        updated.splice(to, 0, moved);
+        return updated;
+      });
+    },
+    [],
+  );
+
 
   const insertWordFromList = useCallback((word: DraggableWord, at: number) => {
     setShuffled(prev => prev.filter(w => w.id !== word.id));
@@ -438,8 +430,8 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
               </p>
             )}
           </div>
-          <DragPreview />
-        </>
+        <DragPreview />
+      </>
       )}
     </div>
   );
