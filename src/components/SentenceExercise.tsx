@@ -47,6 +47,7 @@ const DragPreview: React.FC = () => {
 
   const { x = 0, y = 0 } = currentOffset;
 
+
   return (
     <div
       style={{
@@ -116,6 +117,7 @@ const WordChip: React.FC<WordChipProps> = ({
     { handled?: boolean },
     { isOver: boolean }
   >(
+
     () => ({
       accept: ITEM_TYPE,
       drop: (item, monitor) => {
