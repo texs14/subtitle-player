@@ -116,6 +116,7 @@ const WordChip: React.FC<WordChipProps> = ({
     { handled?: boolean },
     { isOver: boolean }
   >(
+
     () => ({
       accept: ITEM_TYPE,
       drop: (item, monitor) => {
@@ -177,6 +178,7 @@ const WordChip: React.FC<WordChipProps> = ({
       style={{
         opacity: isDragging ? 0 : 1,
         display: isDragging ? 'none' : undefined,
+
         pointerEvents: isDragging ? 'none' : 'auto',
         transform:
           hoverPos === 'left'
@@ -206,9 +208,26 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     /* no-op */
   }, []);
 
-  const handleChipDragEnd = useCallback(() => {
-    /* no-op */
+
+  const handleChipDragStart = useCallback((item: DragItem) => {
+    if (item.fromList) {
+      setShuffled(prev => prev.filter(w => w.id !== item.id));
+    } else {
+      setUserOrder(prev => prev.filter(w => w.id !== item.id));
+    }
   }, []);
+
+  const handleChipDragEnd = useCallback(
+    (item: DragItem, didDrop: boolean) => {
+      if (didDrop) return;
+      if (item.fromList) {
+        setShuffled(prev => [...prev, item]);
+      } else {
+        setUserOrder(prev => [...prev, item]);
+      }
+    },
+    [],
+  );
 
   const moveWord = useCallback(
     (from: number, to: number) => {
