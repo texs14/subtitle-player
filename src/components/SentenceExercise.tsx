@@ -72,6 +72,7 @@ interface WordChipProps {
   colorClass?: string; // цвет фона
   index?: number; // позиция слова в пользовательской зоне
   moveWord?: (dragIndex: number, hoverIndex: number) => void; // перестановка
+  insertWordFromList?: (word: DraggableWord, at: number) => void; // вставка слова из списка
 }
 
 // Универсальный чип, который может перетаскиваться между двумя списками
@@ -82,6 +83,7 @@ const WordChip: React.FC<WordChipProps> = ({
   colorClass,
   index,
   moveWord,
+  insertWordFromList,
 }) => {
   const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
     () => ({
@@ -95,7 +97,16 @@ const WordChip: React.FC<WordChipProps> = ({
   const [, drop] = useDrop<DragItem & { index?: number }>(
     () => ({
       accept: ITEM_TYPE,
-      hover: (item) => {
+      drop: (item, monitor) => {
+        if (!monitor.isOver({ shallow: true })) return;
+        if (!fromList && item.fromList && insertWordFromList && index !== undefined) {
+          insertWordFromList(item, index);
+          item.fromList = false;
+          item.index = index;
+          return { handled: true };
+        }
+      },
+      hover: item => {
         if (!moveWord || fromList || item.fromList) return;
         if (item.index === undefined || index === undefined) return;
         if (item.index === index) return;
@@ -103,7 +114,7 @@ const WordChip: React.FC<WordChipProps> = ({
         item.index = index;
       },
     }),
-    [moveWord, fromList, index],
+    [moveWord, fromList, index, insertWordFromList],
   );
 
   // Скрываем стандартный drag preview
@@ -149,13 +160,23 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     [],
   );
 
+  const insertWordFromList = useCallback((word: DraggableWord, at: number) => {
+    setShuffled(prev => prev.filter(w => w.id !== word.id));
+    setUserOrder(prev => {
+      const updated = [...prev];
+      updated.splice(at, 0, word);
+      return updated;
+    });
+  }, []);
+
   // Зона для составления предложения
   const [{ isOver }, dropToUser] = useDrop<DragItem, void, { isOver: boolean }>(
     () => ({
       accept: ITEM_TYPE,
-      drop: item => {
+      drop: (item, monitor) => {
+        if (monitor.didDrop()) return;
         if (item.fromList && !userOrder.find(w => w.id === item.id)) {
-          // перенос из общего списка
+          // перенос из общего списка в конец, если не попали на слово
           setShuffled(prev => prev.filter(w => w.id !== item.id));
           setUserOrder(prev => [...prev, item]);
         }
@@ -169,7 +190,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   // Зона со всеми словами
   const [{ isOver: isOverList }, dropToList] = useDrop<DragItem, void, { isOver: boolean }>(
-
     () => ({
       accept: ITEM_TYPE,
       drop: (item: DragItem) => {
@@ -296,6 +316,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
                   colorClass={color}
                   index={idx}
                   moveWord={moveWord}
+                  insertWordFromList={insertWordFromList}
                 />
               );
             })}
