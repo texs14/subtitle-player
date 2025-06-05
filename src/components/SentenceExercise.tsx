@@ -1,5 +1,5 @@
 // src/components/exercises/SentenceExercise.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 
@@ -70,22 +70,64 @@ interface WordChipProps {
   fromList: boolean; // где находится слово в данный момент
   disabled: boolean;
   colorClass?: string; // цвет фона
+  index?: number; // позиция слова в пользовательской зоне
+  moveWord?: (dragIndex: number, hoverIndex: number) => void; // перестановка
 }
 
 // Универсальный чип, который может перетаскиваться между двумя списками
-const WordChip: React.FC<WordChipProps> = ({ word, fromList, disabled, colorClass }) => {
-  const [{ isDragging }, drag, preview] = useDrag<DragItem, void, { isDragging: boolean }>(
+const WordChip: React.FC<WordChipProps> = ({
+  word,
+  fromList,
+  disabled,
+  colorClass,
+  index,
+  moveWord,
+}) => {
+  const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
     () => ({
       type: ITEM_TYPE,
-      item: { ...word, fromList },
+      item: { ...word, fromList, index },
       canDrag: !disabled,
     }),
-    [word, fromList, disabled],
-
+    [word, fromList, disabled, index],
   );
 
-  // Скрываем стандартный drag preview
-  useEffect(() => {
+  const [, drop] = useDrop<DragItem & { index?: number }>(
+    () => ({
+      accept: ITEM_TYPE,
+      hover: (item) => {
+        if (!moveWord || fromList || item.fromList) return;
+        if (item.index === undefined || index === undefined) return;
+        if (item.index === index) return;
+        moveWord(item.index, index);
+        item.index = index;
+      },
+    }),
+    [moveWord, fromList, index],
+
+        if (fromList) {
+          drag(node as HTMLDivElement);
+        } else {
+          drag(drop(node as HTMLDivElement));
+        }
+
+  const moveWord = useCallback(
+    (from: number, to: number) => {
+      setUserOrder(prev => {
+        const updated = [...prev];
+        const [moved] = updated.splice(from, 1);
+        updated.splice(to, 0, moved);
+        return updated;
+      });
+    },
+    [],
+  );
+
+  const [{ isOver }, dropToUser] = useDrop<DragItem, void, { isOver: boolean }>(
+      drop: item => {
+      collect: monitor => ({
+        isOver: monitor.isOver({ shallow: true }),
+      }),
     preview(getEmptyImage(), { captureDraggingState: true });
   }, [preview]);
 
@@ -167,7 +209,10 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
   }, [sentence.text, isActive, index]);
 
 
-  // Проверка: нажали «Проверить»
+    setShuffled(prev => [...prev, ...userOrder]);
+            className={`min-h-[48px] border-2 border-dashed rounded p-2 mb-4 flex flex-wrap gap-2 ${isOver ? 'border-yellow-400' : 'border-gray-300'}`}
+                  index={idx}
+                  moveWord={moveWord}
   const handleCheck = () => {
     // Собираем текст из userOrder и отдаем в rightAnswers (массив строк)
     const assembled = userOrder.map(w => w.text).join('');
