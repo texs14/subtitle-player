@@ -32,6 +32,7 @@ type DraggableWord = {
 // Элемент перетаскивания с указанием его текущего списка
 type DragItem = DraggableWord & { fromList: boolean; width: number };
 
+
 const ITEM_TYPE = 'WORD';
 
 // Компонент для кастомного слоя перетаскивания
@@ -157,6 +158,7 @@ const WordChip: React.FC<WordChipProps> = ({
     <div
       ref={node => {
         ref.current = node;
+
         if (fromList) {
           drag(node as HTMLDivElement);
         } else {
@@ -169,6 +171,7 @@ const WordChip: React.FC<WordChipProps> = ({
         marginLeft: hoverPos === 'left' ? dragWidth : 0,
         marginRight: hoverPos === 'right' ? dragWidth : 0,
       }}
+
       className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
       data-interactive="true"
     >
