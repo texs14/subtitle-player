@@ -40,21 +40,22 @@ const DragPreview: React.FC = () => {
     itemType: monitor.getItemType(),
     item: monitor.getItem() as DragItem | null,
     isDragging: monitor.isDragging(),
-    currentOffset: monitor.getSourceClientOffset(),
+    currentOffset: monitor.getClientOffset(),
   }));
 
   if (!isDragging || itemType !== ITEM_TYPE || !currentOffset || !item) return null;
 
-  const { x, y } = currentOffset;
+  const { x = 0, y = 0 } = currentOffset;
+
 
   return (
     <div
       style={{
         position: 'fixed',
         pointerEvents: 'none',
-        left: x,
-        top: y,
-        transform: 'translate(-50%, -50%)',
+        left: 0,
+        top: 0,
+        transform: `translate(${x}px, ${y}px)`,
         zIndex: 1000,
       }}
     >
@@ -111,7 +112,12 @@ const WordChip: React.FC<WordChipProps> = ({
     [word, fromList, disabled, index, onDragStart, onDragEnd],
   );
 
-  const [{ isOver }, drop] = useDrop<DragItem & { index?: number }>(
+  const [{ isOver }, drop] = useDrop<
+    DragItem & { index?: number },
+    { handled?: boolean },
+    { isOver: boolean }
+  >(
+
     () => ({
       accept: ITEM_TYPE,
       drop: (item, monitor) => {
@@ -181,7 +187,6 @@ const WordChip: React.FC<WordChipProps> = ({
               : 'none',
         transition: hoverPos ? 'transform 0.3s ease-out' : undefined,
       }}
-
       className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
       data-interactive="true"
     >
@@ -351,7 +356,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
             className={`flex flex-wrap gap-2 mb-4 border-2 border-dashed rounded ${isOverList ? 'border-yellow-400' : 'border-transparent'}`}
           >
             {shuffled.map((wordObj, idx) => (
-
               <WordChip
                 key={wordObj.id}
                 word={wordObj}
@@ -360,7 +364,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
                 index={idx}
                 onDragStart={handleChipDragStart}
                 onDragEnd={handleChipDragEnd}
-
               />
             ))}
           </div>
@@ -394,7 +397,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
                   insertWordFromList={insertWordFromList}
                   onDragStart={handleChipDragStart}
                   onDragEnd={handleChipDragEnd}
-
                 />
               );
             })}
