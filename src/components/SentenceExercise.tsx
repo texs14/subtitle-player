@@ -32,7 +32,6 @@ type DraggableWord = {
 // Элемент перетаскивания с указанием его текущего списка
 type DragItem = DraggableWord & { fromList: boolean; width: number };
 
-
 const ITEM_TYPE = 'WORD';
 
 // Компонент для кастомного слоя перетаскивания
@@ -71,9 +70,11 @@ interface WordChipProps {
   fromList: boolean; // где находится слово в данный момент
   disabled: boolean;
   colorClass?: string; // цвет фона
-  index?: number; // позиция слова в пользовательской зоне
+  index?: number; // позиция слова в пользовательской зоне или списке
   moveWord?: (dragIndex: number, hoverIndex: number) => void; // перестановка
   insertWordFromList?: (word: DraggableWord, at: number) => void; // вставка слова из списка
+  onDragStart: (item: DragItem) => void; // уведомить родителя о начале drag
+  onDragEnd: (item: DragItem, didDrop: boolean) => void; // уведомить о завершении
 }
 
 // Универсальный чип, который может перетаскиваться между двумя списками
@@ -85,6 +86,8 @@ const WordChip: React.FC<WordChipProps> = ({
   index,
   moveWord,
   insertWordFromList,
+  onDragStart,
+  onDragEnd,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [hoverPos, setHoverPos] = useState<'left' | 'right' | null>(null);
@@ -95,14 +98,17 @@ const WordChip: React.FC<WordChipProps> = ({
       type: ITEM_TYPE,
       item: () => {
         const width = ref.current?.offsetWidth || 0;
-        return { ...word, fromList, index, width };
+        const item = { ...word, fromList, index, width };
+        onDragStart(item);
+        return item;
       },
       canDrag: !disabled,
-      end: () => {
+      end: (item, monitor) => {
         setHoverPos(null);
+        if (item) onDragEnd(item as DragItem, monitor.didDrop());
       },
     }),
-    [word, fromList, disabled, index],
+    [word, fromList, disabled, index, onDragStart, onDragEnd],
   );
 
   const [{ isOver }, drop] = useDrop<DragItem & { index?: number }>(
@@ -158,7 +164,6 @@ const WordChip: React.FC<WordChipProps> = ({
     <div
       ref={node => {
         ref.current = node;
-
         if (fromList) {
           drag(node as HTMLDivElement);
         } else {
@@ -167,9 +172,14 @@ const WordChip: React.FC<WordChipProps> = ({
       }}
       style={{
         opacity: isDragging ? 0 : 1,
-        transition: 'all 0.3s ease-out',
-        marginLeft: hoverPos === 'left' ? dragWidth : 0,
-        marginRight: hoverPos === 'right' ? dragWidth : 0,
+        pointerEvents: isDragging ? 'none' : 'auto',
+        transform:
+          hoverPos === 'left'
+            ? `translateX(-${dragWidth}px)`
+            : hoverPos === 'right'
+              ? `translateX(${dragWidth}px)`
+              : 'none',
+        transition: hoverPos ? 'transform 0.3s ease-out' : undefined,
       }}
 
       className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
@@ -187,6 +197,26 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
   const [feedback, setFeedback] = useState<boolean[]>([]); // true = правильно, false = неправильно
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  const handleChipDragStart = useCallback((item: DragItem) => {
+    if (item.fromList) {
+      setShuffled(prev => prev.filter(w => w.id !== item.id));
+    } else {
+      setUserOrder(prev => prev.filter(w => w.id !== item.id));
+    }
+  }, []);
+
+  const handleChipDragEnd = useCallback(
+    (item: DragItem, didDrop: boolean) => {
+      if (didDrop) return;
+      if (item.fromList) {
+        setShuffled(prev => [...prev, item]);
+      } else {
+        setUserOrder(prev => [...prev, item]);
+      }
+    },
+    [],
+  );
 
   const moveWord = useCallback(
     (from: number, to: number) => {
@@ -320,12 +350,17 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
             }}
             className={`flex flex-wrap gap-2 mb-4 border-2 border-dashed rounded ${isOverList ? 'border-yellow-400' : 'border-transparent'}`}
           >
-            {shuffled.map(wordObj => (
+            {shuffled.map((wordObj, idx) => (
+
               <WordChip
                 key={wordObj.id}
                 word={wordObj}
                 fromList={true}
                 disabled={isChecked}
+                index={idx}
+                onDragStart={handleChipDragStart}
+                onDragEnd={handleChipDragEnd}
+
               />
             ))}
           </div>
@@ -357,6 +392,9 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
                   index={idx}
                   moveWord={moveWord}
                   insertWordFromList={insertWordFromList}
+                  onDragStart={handleChipDragStart}
+                  onDragEnd={handleChipDragEnd}
+
                 />
               );
             })}
