@@ -169,6 +169,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   // Зона со всеми словами
   const [{ isOver: isOverList }, dropToList] = useDrop<DragItem, void, { isOver: boolean }>(
+
     () => ({
       accept: ITEM_TYPE,
       drop: (item: DragItem) => {
