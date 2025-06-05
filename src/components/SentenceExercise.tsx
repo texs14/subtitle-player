@@ -47,7 +47,6 @@ const DragPreview: React.FC = () => {
 
   const { x = 0, y = 0 } = currentOffset;
 
-
   return (
     <div
       style={{
@@ -178,6 +177,8 @@ const WordChip: React.FC<WordChipProps> = ({
       }}
       style={{
         opacity: isDragging ? 0 : 1,
+        display: isDragging ? 'none' : undefined,
+
         pointerEvents: isDragging ? 'none' : 'auto',
         transform:
           hoverPos === 'left'
@@ -202,6 +203,11 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
   const [feedback, setFeedback] = useState<boolean[]>([]); // true = правильно, false = неправильно
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  const handleChipDragStart = useCallback((_item: DragItem) => {
+    /* no-op */
+  }, []);
+
 
   const handleChipDragStart = useCallback((item: DragItem) => {
     if (item.fromList) {
