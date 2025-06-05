@@ -222,6 +222,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     [],
   );
 
+
   const insertWordFromList = useCallback((word: DraggableWord, at: number) => {
     setShuffled(prev => prev.filter(w => w.id !== word.id));
     setUserOrder(prev => {
@@ -292,7 +293,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     setIsChecked(false);
     setFeedback([]);
   }, [sentence.text, isActive, index]);
-
 
   // Проверка: нажали «Проверить»
   const handleCheck = () => {
