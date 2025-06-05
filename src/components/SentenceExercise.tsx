@@ -30,7 +30,8 @@ type DraggableWord = {
 };
 
 // Элемент перетаскивания с указанием его текущего списка
-type DragItem = DraggableWord & { fromList: boolean };
+type DragItem = DraggableWord & { fromList: boolean; width: number };
+
 
 const ITEM_TYPE = 'WORD';
 
@@ -85,37 +86,68 @@ const WordChip: React.FC<WordChipProps> = ({
   moveWord,
   insertWordFromList,
 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hoverPos, setHoverPos] = useState<'left' | 'right' | null>(null);
+  const [dragWidth, setDragWidth] = useState(0);
+
   const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
     () => ({
       type: ITEM_TYPE,
-      item: { ...word, fromList, index },
+      item: () => {
+        const width = ref.current?.offsetWidth || 0;
+        return { ...word, fromList, index, width };
+      },
       canDrag: !disabled,
+      end: () => {
+        setHoverPos(null);
+      },
     }),
     [word, fromList, disabled, index],
   );
 
-  const [, drop] = useDrop<DragItem & { index?: number }>(
+  const [{ isOver }, drop] = useDrop<DragItem & { index?: number }>(
     () => ({
       accept: ITEM_TYPE,
       drop: (item, monitor) => {
+        setHoverPos(null);
         if (!monitor.isOver({ shallow: true })) return;
         if (!fromList && item.fromList && insertWordFromList && index !== undefined) {
-          insertWordFromList(item, index);
+          const at = hoverPos === 'right' ? index + 1 : index;
+          insertWordFromList(item, at);
           item.fromList = false;
-          item.index = index;
+          item.index = at;
           return { handled: true };
         }
       },
-      hover: item => {
+      hover: (item, monitor) => {
+        if (!ref.current) return;
+        const rect = ref.current.getBoundingClientRect();
+        const middleX = (rect.right - rect.left) / 2;
+        const client = monitor.getClientOffset();
+        if (!client) return;
+        const offsetX = client.x - rect.left;
+        const pos = offsetX < middleX ? 'left' : 'right';
+        setHoverPos(pos);
+        setDragWidth(item.width);
+
         if (!moveWord || fromList || item.fromList) return;
         if (item.index === undefined || index === undefined) return;
-        if (item.index === index) return;
-        moveWord(item.index, index);
-        item.index = index;
+        const targetIndex = pos === 'left' ? index : index + 1;
+        if (targetIndex === item.index || targetIndex - 1 === item.index) return;
+        const newIndex = targetIndex > item.index ? targetIndex - 1 : targetIndex;
+        moveWord(item.index, newIndex);
+        item.index = newIndex;
       },
+      collect: monitor => ({
+        isOver: monitor.isOver({ shallow: true }),
+      }),
     }),
-    [moveWord, fromList, index, insertWordFromList],
+    [moveWord, fromList, index, insertWordFromList, hoverPos],
   );
+
+  useEffect(() => {
+    if (!isOver) setHoverPos(null);
+  }, [isOver]);
 
   // Скрываем стандартный drag preview
   useEffect(() => {
@@ -125,13 +157,21 @@ const WordChip: React.FC<WordChipProps> = ({
   return (
     <div
       ref={node => {
+        ref.current = node;
+
         if (fromList) {
           drag(node as HTMLDivElement);
         } else {
           drag(drop(node as HTMLDivElement));
         }
       }}
-      style={{ opacity: isDragging ? 0 : 1 }}
+      style={{
+        opacity: isDragging ? 0 : 1,
+        transition: 'all 0.3s ease-out',
+        marginLeft: hoverPos === 'left' ? dragWidth : 0,
+        marginRight: hoverPos === 'right' ? dragWidth : 0,
+      }}
+
       className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
       data-interactive="true"
     >
