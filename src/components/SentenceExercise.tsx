@@ -168,7 +168,8 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
   );
 
   // Зона со всеми словами
-  const [, dropToList] = useDrop(
+  const [{ isOver: isOverList }, dropToList] = useDrop<DragItem, void, { isOver: boolean }>(
+
     () => ({
       accept: ITEM_TYPE,
       drop: (item: DragItem) => {
@@ -178,6 +179,9 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
           setShuffled(prev => [...prev, item]);
         }
       },
+      collect: monitor => ({
+        isOver: monitor.isOver({ shallow: true }),
+      }),
     }),
     [userOrder, shuffled],
   );
@@ -254,7 +258,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
             ref={node => {
               dropToList(node as HTMLDivElement);
             }}
-            className="flex flex-wrap gap-2 mb-4"
+            className={`flex flex-wrap gap-2 mb-4 border-2 border-dashed rounded ${isOverList ? 'border-yellow-400' : 'border-transparent'}`}
           >
             {shuffled.map(wordObj => (
               <WordChip
