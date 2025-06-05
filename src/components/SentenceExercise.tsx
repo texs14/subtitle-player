@@ -1,5 +1,5 @@
 // src/components/exercises/SentenceExercise.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 
@@ -70,18 +70,40 @@ interface WordChipProps {
   fromList: boolean; // где находится слово в данный момент
   disabled: boolean;
   colorClass?: string; // цвет фона
+  index?: number; // позиция слова в пользовательской зоне
+  moveWord?: (dragIndex: number, hoverIndex: number) => void; // перестановка
 }
 
 // Универсальный чип, который может перетаскиваться между двумя списками
-const WordChip: React.FC<WordChipProps> = ({ word, fromList, disabled, colorClass }) => {
-  const [{ isDragging }, drag, preview] = useDrag<DragItem, void, { isDragging: boolean }>(
+const WordChip: React.FC<WordChipProps> = ({
+  word,
+  fromList,
+  disabled,
+  colorClass,
+  index,
+  moveWord,
+}) => {
+  const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
     () => ({
       type: ITEM_TYPE,
-      item: { ...word, fromList },
+      item: { ...word, fromList, index },
       canDrag: !disabled,
     }),
-    [word, fromList, disabled],
+    [word, fromList, disabled, index],
+  );
 
+  const [, drop] = useDrop<DragItem & { index?: number }>(
+    () => ({
+      accept: ITEM_TYPE,
+      hover: (item) => {
+        if (!moveWord || fromList || item.fromList) return;
+        if (item.index === undefined || index === undefined) return;
+        if (item.index === index) return;
+        moveWord(item.index, index);
+        item.index = index;
+      },
+    }),
+    [moveWord, fromList, index],
   );
 
   // Скрываем стандартный drag preview
@@ -92,7 +114,11 @@ const WordChip: React.FC<WordChipProps> = ({ word, fromList, disabled, colorClas
   return (
     <div
       ref={node => {
-        drag(node as HTMLDivElement);
+        if (fromList) {
+          drag(node as HTMLDivElement);
+        } else {
+          drag(drop(node as HTMLDivElement));
+        }
       }}
       style={{ opacity: isDragging ? 0 : 1 }}
       className={`px-3 py-1 rounded cursor-move select-none ${colorClass || 'bg-gray-200'}`}
@@ -111,17 +137,32 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
+  const moveWord = useCallback(
+    (from: number, to: number) => {
+      setUserOrder(prev => {
+        const updated = [...prev];
+        const [moved] = updated.splice(from, 1);
+        updated.splice(to, 0, moved);
+        return updated;
+      });
+    },
+    [],
+  );
+
   // Зона для составления предложения
-  const [, dropToUser] = useDrop(
+  const [{ isOver }, dropToUser] = useDrop<DragItem, void, { isOver: boolean }>(
     () => ({
       accept: ITEM_TYPE,
-      drop: (item: DragItem) => {
+      drop: item => {
         if (item.fromList && !userOrder.find(w => w.id === item.id)) {
           // перенос из общего списка
           setShuffled(prev => prev.filter(w => w.id !== item.id));
           setUserOrder(prev => [...prev, item]);
         }
       },
+      collect: monitor => ({
+        isOver: monitor.isOver({ shallow: true }),
+      }),
     }),
     [userOrder, shuffled],
   );
@@ -191,6 +232,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
 
   // Сброс текущего поля (например, перед проверкой нового предложения)
   const handleReset = () => {
+    setShuffled(prev => [...prev, ...userOrder]);
     setUserOrder([]);
     setIsChecked(false);
     setFeedback([]);
@@ -230,7 +272,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
               dropToUser(node as HTMLDivElement);
               dropZoneRef.current = node;
             }}
-            className="min-h-[48px] border-2 border-dashed border-gray-300 rounded p-2 mb-4 flex flex-wrap gap-2"
+            className={`min-h-[48px] border-2 border-dashed rounded p-2 mb-4 flex flex-wrap gap-2 ${isOver ? 'border-yellow-400' : 'border-gray-300'}`}
           >
             {userOrder.length === 0 && (
               <span className="text-gray-400">Перетащите сюда слова...</span>
@@ -248,6 +290,8 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
                   fromList={false}
                   disabled={isChecked}
                   colorClass={color}
+                  index={idx}
+                  moveWord={moveWord}
                 />
               );
             })}
