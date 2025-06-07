@@ -180,9 +180,9 @@ const WordChip: React.FC<WordChipProps> = ({
         pointerEvents: isDragging ? 'none' : 'auto',
         transform:
           hoverPos === 'left'
-            ? `translateX(-${dragWidth}px)`
+            ? `translateX(${dragWidth}px)`
             : hoverPos === 'right'
-              ? `translateX(${dragWidth}px)`
+              ? `translateX(-${dragWidth}px)`
               : 'none',
         transition: hoverPos ? 'transform 0.3s ease-out' : undefined,
       }}
@@ -221,7 +221,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     },
     [],
   );
-
 
   const insertWordFromList = useCallback((word: DraggableWord, at: number) => {
     setShuffled(prev => prev.filter(w => w.id !== word.id));
