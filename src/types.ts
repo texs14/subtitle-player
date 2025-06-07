@@ -42,3 +42,11 @@ export interface Sentence {
     en?: string;
   } | null;
 }
+
+export interface Exercise {
+  title: string;
+  description: string;
+  topic: string;
+  difficulty: string;
+  sentences: Sentence[];
+}

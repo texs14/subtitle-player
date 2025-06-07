@@ -22,8 +22,8 @@ export default function HomeLayout() {
       <div className="flex gap-2 mb-6">
         <Tab to="upload">Загрузить видео</Tab>
         <Tab to="video">Видео</Tab>
-        <Tab to="exercises">Упражнение</Tab>
-        <Tab to="sentence/new">Добавить предложение</Tab>
+        <Tab to="exercises">Упражнения</Tab>
+        <Tab to="exercises/new">Добавить упражнение</Tab>
       </div>
       {/* Nested pages */}
       <Outlet />
