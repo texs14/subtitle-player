@@ -6,6 +6,7 @@ import VideoViewPage from './pages/VideoViewPage';
 import { TooltipProvider } from './contexts/TooltipContext';
 import { WordTooltip } from './components/WordTooltip';
 import ExercisePage from './pages/ExercisePage';
+import AddSentencePage from './pages/AddSentencePage';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/video/:videoId" element={<VideoViewPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/upload/:videoId" element={<UploadPage />} />
+            <Route path="/sentence/new" element={<AddSentencePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

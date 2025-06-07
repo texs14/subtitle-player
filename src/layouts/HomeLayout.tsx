@@ -23,6 +23,7 @@ export default function HomeLayout() {
         <Tab to="upload">Загрузить видео</Tab>
         <Tab to="video">Видео</Tab>
         <Tab to="exercises">Упражнение</Tab>
+        <Tab to="sentence/new">Добавить предложение</Tab>
       </div>
       {/* Nested pages */}
       <Outlet />
