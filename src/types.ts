@@ -29,3 +29,16 @@ export type VideoDoc = {
   size: number;
   updated: any; // Firestore Timestamp
 };
+
+export interface Sentence {
+  text: string;
+  rightAnswers: string[];
+  translations: {
+    ru: string;
+    en: string;
+  };
+  note: {
+    ru?: string;
+    en?: string;
+  } | null;
+}
