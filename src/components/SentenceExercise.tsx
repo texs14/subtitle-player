@@ -293,7 +293,6 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     setFeedback([]);
   }, [sentence.text, isActive, index]);
 
-
   // Проверка: нажали «Проверить»
   const handleCheck = () => {
     // Собираем текст из userOrder и отдаем в rightAnswers (массив строк)
