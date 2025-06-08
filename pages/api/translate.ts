@@ -1,10 +1,9 @@
-import express from 'express';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { TranslationServiceClient } from '@google-cloud/translate';
 
-const router = express.Router();
 const client = new TranslationServiceClient();
 
-router.post('/translate', express.json(), async (req, res) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { segments, targetLangs, sourceLang } = req.body;
     if (!Array.isArray(segments) || !targetLangs?.length) {
@@ -13,38 +12,34 @@ router.post('/translate', express.json(), async (req, res) => {
 
     const projectId = process.env.GOOGLE_PROJECT_ID;
     console.log('translate.js projectId', projectId);
-    const texts = segments.map(s => s.text);
+    const texts = segments.map((s: any) => s.text);
     const parent = `projects/${projectId}/locations/global`;
 
-    // Переводим все тексты на каждый язык
-    const translationsByLang = {};
+    const translationsByLang: Record<string, string[]> = {};
     await Promise.all(
-      targetLangs.map(async lang => {
+      targetLangs.map(async (lang: string) => {
         const [response] = await client.translateText({
           parent,
           contents: texts,
           mimeType: 'text/plain',
-          sourceLanguageCode: sourceLang, // Язык оригинала
-          targetLanguageCode: lang, // Язык перевода
+          sourceLanguageCode: sourceLang,
+          targetLanguageCode: lang,
         });
-        translationsByLang[lang] = response.translations.map(t => t.translatedText);
-      }),
+        translationsByLang[lang] = (response.translations || []).map(t => t.translatedText || '');
+      })
     );
 
-    // Формируем результат
-    const result = segments.map(s => ({
+    const result = segments.map((s: any) => ({
       id: s.id,
-      translations: targetLangs.reduce((acc, lang) => {
+      translations: targetLangs.reduce((acc: any, lang: string) => {
         acc[lang] = translationsByLang[lang][s.id] || '';
         return acc;
       }, {}),
     }));
 
-    res.json({ segments: result });
-  } catch (err) {
+    res.status(200).json({ segments: result });
+  } catch (err: any) {
     console.error(err);
     res.status(500).send(err.message);
   }
-});
-
-export default router;
+}
