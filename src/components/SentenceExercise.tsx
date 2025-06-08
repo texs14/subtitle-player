@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
-import image from '../assets/note.png';
 
 interface Sentence {
   text: string; // Полное предложение на тайском, например: "นี่คือข้อเสนอการทดสอบสำหรับการตรวจสอบ"
@@ -333,7 +332,7 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
           <h3 className="mb-2 text-lg font-semibold">Задание {index + 1}</h3>
           {sentence.note && sentence.note.ru && (
             <div className="p-5 bg-gray-100 rounded-[20px] flex items-center ">
-              <img src={image} className="inline mr-2" alt="thai" />
+              <img src="/images/note.png" className="inline mr-2" alt="thai" />
               <p>{sentence.note.ru}</p>
             </div>
           )}

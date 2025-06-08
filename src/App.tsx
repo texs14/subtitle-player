@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import HomeLayout from './layouts/HomeLayout';
-import UploadPage from './pages/UploadPage';
-import PlayerPage from './pages/PlayerPage';
-import VideoViewPage from './pages/VideoViewPage';
+import UploadPage from './screens/UploadPage';
+import PlayerPage from './screens/PlayerPage';
+import VideoViewPage from './screens/VideoViewPage';
 import { TooltipProvider } from './contexts/TooltipContext';
 import { WordTooltip } from './components/WordTooltip';
-import ExercisePage from './pages/ExercisePage';
-import ExercisesPage from './pages/ExercisesPage';
-import AddSentencePage from './pages/AddSentencePage';
+import ExercisePage from './screens/ExercisePage';
+import ExercisesPage from './screens/ExercisesPage';
+import AddSentencePage from './screens/AddSentencePage';
 
 export default function App() {
   return (

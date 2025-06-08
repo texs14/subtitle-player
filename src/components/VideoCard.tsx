@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { VideoMeta } from '../pages/PlayerPage';
+import type { VideoMeta } from '../screens/PlayerPage';
 
 interface Props {
   video: VideoMeta;
