@@ -6,6 +6,12 @@
     "disown-opener": "off",
     "typescript-config/consistent-casing": "off",
     "typescript-config/strict": "off",
-    "typescript-config/is-valid": "off"
+    "typescript-config/is-valid": "off",
+    "axe/forms": [
+      "default",
+      {
+        "select-name": "off"
+      }
+    ]
   }
 }

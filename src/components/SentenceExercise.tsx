@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
+import image from '../assets/note.png';
 
 interface Sentence {
   text: string; // Полное предложение на тайском, например: "นี่คือข้อเสนอการทดสอบสำหรับการตรวจสอบ"
@@ -58,9 +59,7 @@ const DragPreview: React.FC = () => {
         zIndex: 1000,
       }}
     >
-      <div className="px-3 py-1 bg-gray-200 rounded shadow">
-        {item.text}
-      </div>
+      <div className="px-3 py-1 bg-gray-200 rounded shadow">{item.text}</div>
     </div>
   );
 };
@@ -93,7 +92,11 @@ const WordChip: React.FC<WordChipProps> = ({
   const [hoverPos, setHoverPos] = useState<'left' | 'right' | null>(null);
   const [dragWidth, setDragWidth] = useState(0);
 
-  const [{ isDragging }, drag, preview] = useDrag<DragItem & { index?: number }, void, { isDragging: boolean }>(
+  const [{ isDragging }, drag, preview] = useDrag<
+    DragItem & { index?: number },
+    void,
+    { isDragging: boolean }
+  >(
     () => ({
       type: ITEM_TYPE,
       item: () => {
@@ -210,17 +213,14 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
     /* no-op */
   }, []);
 
-  const moveWord = useCallback(
-    (from: number, to: number) => {
-      setUserOrder(prev => {
-        const updated = [...prev];
-        const [moved] = updated.splice(from, 1);
-        updated.splice(to, 0, moved);
-        return updated;
-      });
-    },
-    [],
-  );
+  const moveWord = useCallback((from: number, to: number) => {
+    setUserOrder(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(from, 1);
+      updated.splice(to, 0, moved);
+      return updated;
+    });
+  }, []);
 
   const insertWordFromList = useCallback((word: DraggableWord, at: number) => {
     setShuffled(prev => prev.filter(w => w.id !== word.id));
@@ -331,8 +331,19 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
       {isActive && (
         <>
           <h3 className="mb-2 text-lg font-semibold">Задание {index + 1}</h3>
+          {sentence.note && sentence.note.ru && (
+            <div className="p-5 bg-gray-100 rounded-[20px] flex items-center ">
+              <img src={image} className="inline mr-2" alt="thai" />
+              <p>{sentence.note.ru}</p>
+            </div>
+          )}
+
           {/* Оригинальный текст (на тайском) */}
-          <p className="mb-2">Соберите предложение:</p>
+          <p className="mt-3 mb-3">Соберите предложение:</p>
+
+          <p className="p-4 mt-3 mb-4 bg-gray-100 border rounded-lg text-[18px] bold">
+            {sentence.translations.ru}
+          </p>
 
           {/* Зона со словарными чипсами (перемешано) */}
           <div
@@ -405,32 +416,8 @@ export default function SentenceExercise({ sentence, onComplete, isActive, index
               Сбросить
             </button>
           </div>
-
-          {/* Если есть перевод или примечание, показываем под заданием */}
-          <div className="mt-3 text-sm text-gray-600">
-            {sentence.translations.ru && (
-              <p>
-                <strong>Перевод (RU):</strong> {sentence.translations.ru}
-              </p>
-            )}
-            {sentence.translations.en && (
-              <p>
-                <strong>Перевод (EN):</strong> {sentence.translations.en}
-              </p>
-            )}
-            {sentence.note && sentence.note.ru && (
-              <p className="mt-1">
-                <strong>Примечание (RU):</strong> {sentence.note.ru}
-              </p>
-            )}
-            {sentence.note && sentence.note.en && (
-              <p>
-                <strong>Note (EN):</strong> {sentence.note.en}
-              </p>
-            )}
-          </div>
-        <DragPreview />
-      </>
+          <DragPreview />
+        </>
       )}
     </div>
   );

@@ -8,7 +8,7 @@ interface SentenceForm {
   text: string;
   rightAnswers: string;
   translations: { ru: string; en: string };
-  notes: { ru: string; en: string };
+  notes: { ru?: string; en?: string };
 }
 
 const emptyForm = (): SentenceForm => ({
@@ -29,10 +29,7 @@ export default function AddSentencePage() {
 
   const addForm = () => setForms(prev => [...prev, emptyForm()]);
 
-  const updateForm = (
-    index: number,
-    updater: (form: SentenceForm) => SentenceForm,
-  ) => {
+  const updateForm = (index: number, updater: (form: SentenceForm) => SentenceForm) => {
     setForms(prev => {
       const updated = [...prev];
       updated[index] = updater(updated[index]);
@@ -40,8 +37,7 @@ export default function AddSentencePage() {
     });
   };
 
-  const removeForm = (index: number) =>
-    setForms(prev => prev.filter((_, i) => i !== index));
+  const removeForm = (index: number) => setForms(prev => prev.filter((_, i) => i !== index));
 
   const moveForm = (from: number, to: number) => {
     setForms(prev => {
@@ -55,6 +51,8 @@ export default function AddSentencePage() {
   useEffect(() => {
     if (!exerciseId) return;
     const load = async () => {
+      if (!exerciseId) return;
+
       const snap = await getDoc(doc(db, 'exercises', exerciseId));
       if (snap.exists()) {
         const data = snap.data() as Exercise;
@@ -84,10 +82,10 @@ export default function AddSentencePage() {
         .filter(Boolean),
       translations: { ...f.translations },
       note:
-        f.notes.ru.trim() || f.notes.en.trim()
+        f.notes.ru?.trim() || f.notes.en?.trim()
           ? {
-              ru: f.notes.ru.trim() || undefined,
-              en: f.notes.en.trim() || undefined,
+              ru: f.notes.ru?.trim() || undefined,
+              en: f.notes.en?.trim() || undefined,
             }
           : null,
     }));
@@ -101,8 +99,10 @@ export default function AddSentencePage() {
         difficulty,
         sentences: payload,
       };
+
+      console.log('exercise', exercise);
       if (exerciseId) {
-        await updateDoc(doc(db, 'exercises', exerciseId), exercise);
+        await updateDoc(doc(db, 'exercises', exerciseId), exercise as any);
       } else {
         await addDoc(collection(db, 'exercises'), exercise);
         setForms([emptyForm()]);
@@ -113,6 +113,8 @@ export default function AddSentencePage() {
       }
       alert('Сохранено');
     } catch (e: any) {
+      console.log('trt');
+
       alert('Ошибка: ' + e.message);
     } finally {
       setSaving(false);
@@ -129,6 +131,7 @@ export default function AddSentencePage() {
           <label className="block text-sm font-medium">Заголовок</label>
           <input
             value={title}
+            placeholder="Заголовок"
             onChange={e => setTitle(e.target.value)}
             className="w-full mt-1 border-gray-300 rounded"
           />
@@ -136,6 +139,7 @@ export default function AddSentencePage() {
         <div>
           <label className="block text-sm font-medium">Описание</label>
           <textarea
+            placeholder="Описание"
             value={description}
             onChange={e => setDescription(e.target.value)}
             className="w-full mt-1 border-gray-300 rounded"
@@ -146,6 +150,7 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Тема</label>
             <input
+              placeholder="Тема"
               value={topic}
               onChange={e => setTopic(e.target.value)}
               className="w-full mt-1 border-gray-300 rounded"
@@ -153,11 +158,16 @@ export default function AddSentencePage() {
           </div>
           <div>
             <label className="block text-sm font-medium">Сложность</label>
-            <input
+            <select
+              name="difficulty"
               value={difficulty}
               onChange={e => setDifficulty(e.target.value)}
               className="w-full mt-1 border-gray-300 rounded"
-            />
+            >
+              <option value="beginner">beginner</option>
+              <option value="intermediate">intermediate</option>
+              <option value="advanced">advanced</option>
+            </select>
           </div>
         </div>
       </div>
@@ -188,10 +198,9 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Текст</label>
             <input
+              placeholder="Текст"
               value={form.text}
-              onChange={e =>
-                updateForm(idx, f => ({ ...f, text: e.target.value }))
-              }
+              onChange={e => updateForm(idx, f => ({ ...f, text: e.target.value }))}
               className="w-full mt-1 border-gray-300 rounded"
             />
           </div>
@@ -200,10 +209,9 @@ export default function AddSentencePage() {
               Правильные варианты (каждый на новой строке)
             </label>
             <textarea
+              placeholder="Правильные варианты (каждый на новой строке)"
               value={form.rightAnswers}
-              onChange={e =>
-                updateForm(idx, f => ({ ...f, rightAnswers: e.target.value }))
-              }
+              onChange={e => updateForm(idx, f => ({ ...f, rightAnswers: e.target.value }))}
               className="w-full mt-1 border-gray-300 rounded"
               rows={3}
             />
@@ -211,6 +219,7 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Перевод (RU)</label>
             <input
+              placeholder="Перевод (RU)"
               value={form.translations.ru}
               onChange={e =>
                 updateForm(idx, f => ({
@@ -224,6 +233,7 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Перевод (EN)</label>
             <input
+              placeholder="Перевод (EN)"
               value={form.translations.en}
               onChange={e =>
                 updateForm(idx, f => ({
@@ -237,11 +247,12 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Примечание (RU)</label>
             <input
+              placeholder="Примечание (RU)"
               value={form.notes.ru}
               onChange={e =>
                 updateForm(idx, f => ({
                   ...f,
-                  notes: { ...f.notes, ru: e.target.value },
+                  notes: f.notes ? { ...f.notes, ru: e.target.value } : { ru: e.target.value },
                 }))
               }
               className="w-full mt-1 border-gray-300 rounded"
@@ -250,6 +261,7 @@ export default function AddSentencePage() {
           <div>
             <label className="block text-sm font-medium">Note (EN)</label>
             <input
+              placeholder="Note (EN)"
               value={form.notes.en}
               onChange={e =>
                 updateForm(idx, f => ({
@@ -263,10 +275,7 @@ export default function AddSentencePage() {
         </div>
       ))}
       <div className="flex gap-2">
-        <button
-          onClick={addForm}
-          className="px-4 py-2 text-white bg-blue-600 rounded"
-        >
+        <button onClick={addForm} className="px-4 py-2 text-white bg-blue-600 rounded">
           Добавить предложение
         </button>
         <button
@@ -280,3 +289,154 @@ export default function AddSentencePage() {
     </div>
   );
 }
+
+const a = [
+  {
+    title: 'Собираем фразы-приветствия',
+    description: 'Упражнение: соберите базовые приветственные фразы из тайских слов.',
+    topic: 'Приветствие',
+    difficulty: 'intermediate',
+    sentences: [
+      {
+        text: 'สวัสดีครับ',
+        rightAnswers: ['สวัสดีครับ', 'สวัสดีค่ะ'],
+        translations: {
+          en: 'Hello!',
+          ru: 'Здравствуйте!',
+        },
+      },
+      {
+        text: 'คุณสบายดีไหม',
+        rightAnswers: ['คุณสบายดีไหม'],
+        translations: {
+          en: 'How are you?',
+          ru: 'Как ваши дела?',
+        },
+        note: {
+          ru: 'Частица «ไหม» в конце превращает утверждение в общий вопрос (да/нет).',
+          en: 'The particle “ไหม” at the end turns a statement into a yes/no question.',
+        },
+      },
+      {
+        text: 'ยินดีที่ได้รู้จัก',
+        rightAnswers: ['ยินดีที่ได้รู้จัก'],
+        translations: {
+          en: 'Nice to meet you.',
+          ru: 'Приятно познакомиться.',
+        },
+      },
+      {
+        text: 'ผมชื่อโอเล็ก',
+        rightAnswers: ['ผมชื่อโอเล็ก', 'ฉันชื่อโอเล็ก'],
+        translations: {
+          en: 'My name is Oleg.',
+          ru: 'Меня зовут Олег.',
+        },
+        note: {
+          ru: '«ผม» употребляет говорящий-мужчина; женщины используют «ฉัน/ดิฉัน».',
+          en: 'Men use “ผม” for “I”; women say “ฉัน/ดิฉัน”.',
+        },
+      },
+    ],
+  },
+  {
+    title: 'Сколько это стоит?',
+    description: 'Упражнение: собираем вопросы о цене и ответы при покупке.',
+    topic: 'Вопросы о цене',
+    difficulty: 'intermediate',
+    sentences: [
+      {
+        text: 'อันนี้ราคาเท่าไหร่',
+        rightAnswers: ['อันนี้ราคาเท่าไหร่'],
+        translations: {
+          en: 'How much is this?',
+          ru: 'Сколько это стоит?',
+        },
+        note: {
+          ru: '«เท่าไหร่» — вопросительное «сколько?», ставится в конце.',
+          en: '“เท่าไหร่” means “how much?” and usually comes last.',
+        },
+      },
+      {
+        text: 'ลดราคาได้ไหม',
+        rightAnswers: ['ลดราคาได้ไหม'],
+        translations: {
+          en: 'Can you lower the price?',
+          ru: 'Можно сделать скидку?',
+        },
+        note: null,
+      },
+      {
+        text: 'แพงไปหน่อย',
+        rightAnswers: ['แพงไปหน่อย'],
+        translations: {
+          en: 'It’s a bit expensive.',
+          ru: 'Дороговато.',
+        },
+        note: null,
+      },
+      {
+        text: 'ฉันจะเอาอันนี้',
+        rightAnswers: ['ฉันจะเอาอันนี้', 'ผมจะเอาอันนี้'],
+        translations: {
+          en: 'I’ll take this one.',
+          ru: 'Я возьму это.',
+        },
+        note: {
+          ru: 'Глагол «เอา» здесь значит «брать/покупать».',
+          en: 'The verb “เอา” means “to take/buy” in this context.',
+        },
+      },
+    ],
+  },
+  {
+    title: 'О себе на тайском',
+    description: 'Упражнение: соберите предложения, рассказывающие о себе.',
+    topic: 'Рассказ о себе',
+    difficulty: 'intermediate',
+    sentences: [
+      {
+        text: 'ผมมาจากรัสเซีย',
+        rightAnswers: ['ผมมาจากรัสเซีย', 'ฉันมาจากรัสเซีย'],
+        translations: {
+          en: 'I am from Russia.',
+          ru: 'Я из России.',
+        },
+        note: {
+          ru: '«มาจาก» = «родом из/приехал из».',
+          en: '“มาจาก” means “to come from / originate from”.',
+        },
+      },
+      {
+        text: 'ผมทำงานเป็นโปรแกรมเมอร์',
+        rightAnswers: ['ผมทำงานเป็นโปรแกรมเมอร์', 'ฉันทำงานเป็นโปรแกรมเมอร์'],
+        translations: {
+          en: 'I work as a programmer.',
+          ru: 'Я работаю программистом.',
+        },
+        note: {
+          ru: 'Шаблон «ทำงานเป็น + профессия» для указания рода занятий.',
+          en: 'Use the pattern “ทำงานเป็น + profession” to state your job.',
+        },
+      },
+      {
+        text: 'ฉันชอบอ่านหนังสือ',
+        rightAnswers: ['ฉันชอบอ่านหนังสือ', 'ผมชอบอ่านหนังสือ'],
+        translations: {
+          en: 'I like reading books.',
+          ru: 'Мне нравится читать книги.',
+        },
+        note: null,
+      },
+      {
+        text: 'ตอนนี้ผมเรียนภาษาไทย',
+        rightAnswers: ['ตอนนี้ผมเรียนภาษาไทย', 'ตอนนี้ฉันเรียนภาษาไทย'],
+        translations: {
+          en: 'I am currently learning Thai.',
+          ru: 'Сейчас я изучаю тайский язык.',
+        },
+        note: null,
+      },
+    ],
+  },
+];

@@ -15,9 +15,7 @@ export default function ExercisesPage() {
   useEffect(() => {
     const fetchData = async () => {
       const snap = await getDocs(collection(db, 'exercises'));
-      setExercises(
-        snap.docs.map(d => ({ id: d.id, ...(d.data() as Exercise) }))
-      );
+      setExercises(snap.docs.map(d => ({ id: d.id, ...(d.data() as Exercise) })));
     };
     fetchData();
   }, []);
