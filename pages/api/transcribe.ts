@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import nextConnect from 'next-connect';
+import { createRouter } from 'next-connect';
 import multer from 'multer';
 import axios from 'axios';
 import { promises as fs } from 'fs';
@@ -41,14 +41,10 @@ const translate = new TranslationServiceClient({
   credentials: { client_email: clientEmail, private_key: privateKey },
 });
 
-const apiRoute = nextConnect<NextApiRequest, NextApiResponse>({
-  onError(err, _req, res) {
-    console.error(err);
-    res.status(500).end(err.toString());
-  },
-});
+const apiRoute = createRouter<NextApiRequest, NextApiResponse>();
 
-apiRoute.use(upload.single('video'));
+// Multer middleware is typed for Express. Cast to `any` for use here.
+apiRoute.use(upload.single('video') as any);
 
 apiRoute.post(async (req: any, res) => {
   try {
@@ -101,8 +97,10 @@ apiRoute.post(async (req: any, res) => {
     };
     const longReq = { config: speechConfig, audio: { uri: gcsUri } };
 
-    const [operation] = await speech.longRunningRecognize(longReq);
-    const [speechResp] = await operation.promise();
+    // @ts-ignore - Google client types are incompatible
+    const [operation] = (await speech.longRunningRecognize(longReq)) as any;
+    // @ts-ignore
+    const [speechResp] = (await operation.promise()) as any;
 
     const segments = speechResp.results.map((r, idx) => {
       const alt = r.alternatives?.[0] || {};
@@ -149,7 +147,12 @@ apiRoute.post(async (req: any, res) => {
   }
 });
 
-export default apiRoute;
+export default apiRoute.handler({
+  onError(err, _req, res) {
+    console.error(err);
+    res.status(500).end(err.toString());
+  },
+});
 export const config = {
   api: {
     bodyParser: false,
