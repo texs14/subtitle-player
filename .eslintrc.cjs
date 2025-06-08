@@ -18,4 +18,8 @@ module.exports = {
   ],
   plugins: ["react", "react-hooks", "@typescript-eslint", "import", "jsx-a11y"],
   settings: { react: { version: "detect" } },
+  rules: {
+    "react/react-in-jsx-scope": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+  },
 };
